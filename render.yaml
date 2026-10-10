@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: ecopulse
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      - key: FLASK_DEBUG
+        value: "false"
+      - key: DEMO_MODE
+        value: "true"
+      - key: AI_PROVIDER
+        value: "gemini"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PIPELINE_SECRET
+        generateValue: true
