@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article["title"] }} — EcoPulse{% endblock %}
+
+{% block content %}
+<div class="article-detail-container">
+    <div class="detail-back-bar">
+        <a href="/" class="btn-back">← Back to Dashboard</a>
+        <a href="/articles" class="btn-back">← All Articles</a>
+    </div>
+
+    <article class="article-detail-sheet priority-border-{{ article['priority']|lower }}">
+        <header class="detail-header">
+            <div class="detail-badges">
+                <span class="category-badge">{{ article["category"] }}</span>
+                <span class="priority-pill priority-{{ article['priority']|lower }}">
+                    {{ article["priority"] }} Priority
+                </span>
+                {% if article["location"] %}
+                <span class="detail-location">📍 {{ article["location"] }}</span>
+                {% endif %}
+            </div>
+
+            <h1 class="detail-title">{{ article["title"] }}</h1>
+
+            <div class="detail-meta">
+                <span class="meta-item">📰 Source: <strong>{{ article["source"] }}</strong></span>
+                {% if article["published_at"] %}
+                <span class="meta-dot">•</span>
+                <span class="meta-item">🕒 Published: <strong>{{ article["published_at"] }}</strong></span>
+                {% endif %}
+                {% if article["collected_at"] %}
+                <span class="meta-dot">•</span>
+                <span class="meta-item">📥 Collected: {{ article["collected_at"] }}</span>
+                {% endif %}
+            </div>
+        </header>
+
+        {% if article["summary"] %}
+        <section class="detail-section ai-summary-section">
+            <div class="section-title-chip">🤖 AI Environmental Summary</div>
+            <p class="summary-highlight-text">{{ article["summary"] }}</p>
+        </section>
+        {% endif %}
+
+        {% if article["description"] %}
+        <section class="detail-section excerpt-section">
+            <div class="section-title-chip">📄 RSS Feed Excerpt</div>
+            <p class="excerpt-text">{{ article["description"] }}</p>
+        </section>
+        {% endif %}
+
+        {% if article["recommended_action"] %}
+        <section class="detail-section action-section">
+            <div class="section-title-chip">✅ Recommended Community Action</div>
+            <p class="action-highlight-text">{{ article["recommended_action"] }}</p>
+        </section>
+        {% endif %}
+
+        {% if article["reason"] %}
+        <section class="detail-section reasoning-section">
+            <div class="section-title-chip">🔍 Relevance Reasoning</div>
+            <p class="reasoning-text">{{ article["reason"] }}</p>
+        </section>
+        {% endif %}
+
+        <footer class="detail-footer">
+            <div class="outbound-cta-box">
+                <div class="cta-text">
+                    <h4>Want to read the full report?</h4>
+                    <p>Access the complete story, original journalism, and full media coverage on {{ article["source"] }}.</p>
+                </div>
+                <a href="{{ article['url'] }}" target="_blank" rel="noopener noreferrer" class="btn-read-yellow btn-large">
+                    READ ORIGINAL SOURCE AT {{ article["source"]|upper }} <span>↗</span>
+                </a>
+            </div>
+        </footer>
+    </article>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+name: EcoPulse Daily Pipeline & Tests
+
+on:
+  schedule:
+    # 7:00 AM India Standard Time (IST = UTC+5:30) is 01:30 AM UTC
+    - cron: '30 1 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+# Prevent overlapping runs
+concurrency:
+  group: ecopulse-daily-pipeline
+  cancel-in-progress: false
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run test suite
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+        run: |
+          python -m pytest -v
+
+      - name: Run news ingestion pipeline (Local Runner Verification)
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER || 'gemini' }}
+        run: |
+          python pipeline.py
+
+      - name: Upload runner database artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: news-database-${{ github.run_id }}
+          path: data/news.db
+          retention-days: 14
+
+      # Remote synchronization trigger:
+      # If a live deployment URL and PIPELINE_SECRET are configured in GitHub Secrets,
+      # trigger the live production app to update its persistent database directly.
+      - name: Trigger Live Production Site Sync (Optional)
+        if: env.DEPLOYED_APP_URL != '' && env.PIPELINE_SECRET != ''
+        env:
+          DEPLOYED_APP_URL: ${{ secrets.DEPLOYED_APP_URL }}
+          PIPELINE_SECRET: ${{ secrets.PIPELINE_SECRET }}
+        run: |
+          echo "Triggering scheduled pipeline on deployed public application..."
+          curl -X POST "${DEPLOYED_APP_URL}/api/pipeline/run" \
+            -H "Authorization: Bearer ${PIPELINE_SECRET}" \
+            --max-time 180 \
+            --fail || echo "Production trigger webhook returned error or timed out."

@@ -6,58 +6,64 @@ from ai.classifier import get_classifier
 
 load_dotenv()
 
-print("===================================================")
-print(" EcoPulse Phase 7 - Pipeline Classification Test")
-print("===================================================")
 
-# Create classifier
-classifier = get_classifier()
+def main():
+    print("===================================================")
+    print(" EcoPulse Phase 7 - Pipeline Classification Test")
+    print("===================================================")
 
-# Test article
-title = "Heavy rainfall causes flooding in Chennai"
+    # Create classifier
+    classifier = get_classifier()
 
-description = """
-Heavy rainfall has caused flooding and severe waterlogging
-in several parts of Chennai. Authorities have issued safety
-warnings and advised residents to avoid low-lying areas.
-"""
+    # Test article
+    title = "Heavy rainfall causes flooding in Chennai"
 
-print("\nTest Article:")
-print("Title:", title)
+    description = """
+    Heavy rainfall has caused flooding and severe waterlogging
+    in several parts of Chennai. Authorities have issued safety
+    warnings and advised residents to avoid low-lying areas.
+    """
 
-print("\nSending article to Gemini for classification...")
+    print("\nTest Article:")
+    print("Title:", title)
 
-# Classify article
-result = classifier.classify(title, description)
+    print("\nSending article to Gemini for classification...")
 
-print("\nGemini Classification:")
-print("Category :", result.get("category"))
-print("Priority :", result.get("priority"))
-print("Location :", result.get("location"))
+    # Classify article
+    result = classifier.classify(title, description)
 
-if result.get("reason"):
-    print("Reason   :", result.get("reason"))
+    print("\nGemini Classification:")
+    print("Category :", result.get("category"))
+    print("Priority :", result.get("priority"))
+    print("Location :", result.get("location"))
 
-# Create test article
-article = {
-    "title": title,
-    "description": description,
-    "url": "https://ecopulse-test.local/phase7-test-chennai-20261008",
-    "source": "EcoPulse Phase 7 Test",
-    "published": "2026-10-08",
-    "category": result.get("category", "Other"),
-    "priority": result.get("priority", "LOW"),
-    "location": result.get("location", "Unknown"),
-}
+    if result.get("reason"):
+        print("Reason   :", result.get("reason"))
 
-print("\nSaving classified article to database...")
+    # Create test article
+    article = {
+        "title": title,
+        "description": description,
+        "url": "https://ecopulse-test.local/phase7-test-chennai-20261008",
+        "source": "EcoPulse Phase 7 Test",
+        "published": "2026-10-08",
+        "category": result.get("category", "Other"),
+        "priority": result.get("priority", "LOW"),
+        "location": result.get("location", "Unknown"),
+    }
 
-try:
-    insert_article(article)
-    print("[OK] Article inserted into database.")
-except Exception as e:
-    print("[ERROR] Could not insert article:", e)
+    print("\nSaving classified article to database...")
 
-print("\n===================================================")
-print(" Phase 7 Test Completed")
-print("===================================================")
+    try:
+        insert_article(article)
+        print("[OK] Article inserted into database.")
+    except Exception as e:
+        print("[ERROR] Could not insert article:", e)
+
+    print("\n===================================================")
+    print(" Phase 7 Test Completed")
+    print("===================================================")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,344 +1,354 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% block title %}EcoPulse — Community News & Eco-Alert Aggregator{% endblock %}
 
-    <title>EcoPulse Dashboard</title>
+{% block content %}
+<!-- Section: Hero & Introduction -->
+<section class="intro-hero">
+    <div class="intro-text">
+        <div class="intro-badge">🌱 Live Environmental Intelligence</div>
+        <h2>Community Eco Alerts</h2>
+        <p class="intro-description">
+            Real-time monitoring of Chennai &amp; Tamil Nadu regional eco-alerts, air quality indicators, severe weather warnings, civic disruptions, and green campus initiatives.
+        </p>
+    </div>
+    <div class="intro-meta">
+        <span class="meta-pill">📡 7 RSS Feeds Monitored</span>
+        <span class="meta-pill">🤖 AI Relevance Verified</span>
+        <span class="meta-pill">⚡ Updated Daily at 7:00 AM IST</span>
+    </div>
+</section>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+<!-- Section: Database-Derived Statistics Area -->
+<section class="stats-grid" aria-label="Alert Statistics">
+    <div class="stat-card stat-total">
+        <div class="stat-icon-wrapper">📊</div>
+        <div class="stat-details">
+            <span class="stat-number">{{ stats["total"] }}</span>
+            <span class="stat-label">Total Relevant Alerts</span>
+        </div>
+        <div class="stat-progress-bar"></div>
+    </div>
 
-<body>
+    <div class="stat-card stat-high">
+        <div class="stat-icon-wrapper">🚨</div>
+        <div class="stat-details">
+            <span class="stat-number">{{ stats["high"] }}</span>
+            <span class="stat-label">High Priority</span>
+        </div>
+        <div class="stat-progress-bar"></div>
+    </div>
 
-    <header class="header">
+    <div class="stat-card stat-medium">
+        <div class="stat-icon-wrapper">⚠️</div>
+        <div class="stat-details">
+            <span class="stat-number">{{ stats["medium"] }}</span>
+            <span class="stat-label">Medium Priority</span>
+        </div>
+        <div class="stat-progress-bar"></div>
+    </div>
 
-        <div class="header-content">
+    <div class="stat-card stat-low">
+        <div class="stat-icon-wrapper">🌿</div>
+        <div class="stat-details">
+            <span class="stat-number">{{ stats["low"] }}</span>
+            <span class="stat-label">Low Priority</span>
+        </div>
+        <div class="stat-progress-bar"></div>
+    </div>
+</section>
 
-            <div>
-                <h1>EcoPulse</h1>
+<!-- Section: Working Search & Filter Controls -->
+<section class="filter-panel" aria-label="Search and Filter Controls">
+    <div class="filter-header">
+        <div class="filter-title-group">
+            <span class="filter-icon">🔍</span>
+            <h3>Search &amp; Filter Alerts</h3>
+        </div>
+        <span class="filter-subtitle">Narrow alerts by keywords, environmental category, urgency, or timeline</span>
+    </div>
 
-                <p>
-                    Automated Community News & Eco-Alert Aggregator
-                </p>
+    <form method="GET" action="/" class="filter-form" id="filterForm">
+        <div class="filter-controls-grid">
+            <!-- Keyword Search -->
+            <div class="form-group form-search">
+                <label for="searchInput">Keyword Search</label>
+                <div class="input-with-icon">
+                    <span class="input-icon">🔎</span>
+                    <input
+                        type="text"
+                        name="search"
+                        id="searchInput"
+                        placeholder="Search headlines, locations, summaries..."
+                        value="{{ selected_search }}"
+                    >
+                </div>
             </div>
 
+            <!-- Category Dropdown -->
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select name="category" id="category">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>
+                        {{ cat }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Priority Dropdown -->
+            <div class="form-group">
+                <label for="priority">Priority</label>
+                <select name="priority" id="priority">
+                    <option value="">All Priorities</option>
+                    {% for prio in priorities %}
+                    <option value="{{ prio }}" {% if selected_priority == prio %}selected{% endif %}>
+                        {{ prio }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date Range Dropdown -->
+            <div class="form-group">
+                <label for="date_range">Article Date</label>
+                <select name="date_range" id="date_range">
+                    <option value="today" {% if selected_date_range == "today" %}selected{% endif %}>Today</option>
+                    <option value="7days" {% if selected_date_range == "7days" %}selected{% endif %}>Last 7 Days</option>
+                    <option value="all" {% if selected_date_range == "all" %}selected{% endif %}>All Articles</option>
+                </select>
+            </div>
         </div>
 
-    </header>
+        <div class="filter-actions">
+            <button type="submit" class="btn-filter">
+                <span>Filter Alerts</span>
+            </button>
+            <a href="/" class="btn-reset">Reset Filters</a>
+        </div>
+    </form>
+</section>
 
+<!-- SECTION 1: Community Projects, Campaigns & Events (Horizontal Card Carousel) -->
+<section class="curated-section community-section" aria-labelledby="communityHeading">
+    <div class="section-top-bar">
+        <div>
+            <div class="section-kicker">🤝 LOCAL ACTION &amp; SUSTAINABILITY</div>
+            <h2 id="communityHeading" class="section-main-heading">Community Projects, Campaigns &amp; Events</h2>
+            <p class="section-subtext">Verified campus sustainability drives, clean-up campaigns, civic initiatives, and community events.</p>
+        </div>
+        <div class="carousel-nav-buttons" aria-label="Carousel Navigation">
+            <button type="button" class="carousel-arrow" id="carouselPrevBtn" aria-label="Previous community cards">‹</button>
+            <button type="button" class="carousel-arrow" id="carouselNextBtn" aria-label="Next community cards">›</button>
+        </div>
+    </div>
 
-    <main class="container">
-
-        <!-- Introduction -->
-
-        <section class="intro">
-
-            <h2>Community Eco Alerts</h2>
-
-            <p>
-                Stay informed about environmental, climate,
-                civic and community-related news.
-            </p>
-
-        </section>
-
-
-        <!-- Dashboard Statistics -->
-
-        <section class="stats">
-
-            <div class="stat-card total">
-
-                <div class="stat-number">
-                    {{ stats["total"] }}
+    {% if community_articles %}
+    <div class="carousel-track-container">
+        <div class="carousel-track" id="communityCarouselTrack">
+            {% for item in community_articles %}
+            <article class="carousel-card">
+                <div class="card-image-wrap">
+                    <img
+                        src="{{ url_for('static', filename='images/community.jpg') }}"
+                        alt="EcoPulse community sustainability project"
+                        class="card-img"
+                        loading="lazy"
+                    >
+                    <span class="card-category-badge badge-community">{{ item["category"] }}</span>
                 </div>
-
-                <div class="stat-label">
-                    Total Relevant Alerts
-                </div>
-
-            </div>
-
-
-            <div class="stat-card high">
-
-                <div class="stat-number">
-                    {{ stats["high"] }}
-                </div>
-
-                <div class="stat-label">
-                    High Priority
-                </div>
-
-            </div>
-
-
-            <div class="stat-card medium">
-
-                <div class="stat-number">
-                    {{ stats["medium"] }}
-                </div>
-
-                <div class="stat-label">
-                    Medium Priority
-                </div>
-
-            </div>
-
-
-            <div class="stat-card low">
-
-                <div class="stat-number">
-                    {{ stats["low"] }}
-                </div>
-
-                <div class="stat-label">
-                    Low Priority
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- Filters -->
-
-
-        <!-- Filters -->
-
-        <section class="filters">
-
-            <form method="GET" action="/">
-
-                <div class="filter-group">
-
-                    <label for="category">Category</label>
-
-                    <select name="category" id="category">
-                        <option value="">All Categories</option>
-
-                        {% for category in categories %}
-                        <option value="{{ category }}" {% if selected_category==category %}selected{% endif %}>
-                            {{ category }}
-                        </option>
-                        {% endfor %}
-                    </select>
-
-                </div>
-
-                <div class="filter-group">
-
-                    <label for="priority">Priority</label>
-
-                    <select name="priority" id="priority">
-                        <option value="">All Priorities</option>
-
-                        {% for priority in priorities %}
-                        <option value="{{ priority }}" {% if selected_priority==priority %}selected{% endif %}>
-                            {{ priority }}
-                        </option>
-                        {% endfor %}
-                    </select>
-
-                </div>
-
-                <div class="filter-group">
-
-                    <label for="date_range">Article Date</label>
-
-                    <select name="date_range" id="date_range">
-                        <option value="today" {% if selected_date_range=="today" %}selected{% endif %}>
-                            Today
-                        </option>
-
-                        <option value="7days" {% if selected_date_range=="7days" %}selected{% endif %}>
-                            Last 7 Days
-                        </option>
-
-                        <option value="all" {% if selected_date_range=="all" %}selected{% endif %}>
-                            All Articles
-                        </option>
-                    </select>
-
-                </div>
-
-                <button type="submit">Filter</button>
-
-                <a href="/" class="reset-button">Reset</a>
-
-            </form>
-
-        </section>
-
-
-        <!-- Article List -->
-
-        <section class="articles">
-
-            {% if articles %}
-
-            <div class="section-title">
-
-                <h2>
-                    Latest Eco Alerts
-                </h2>
-
-                <span>
-                    {{ articles|length }} article(s)
-                </span>
-
-            </div>
-
-
-            {% for article in articles %}
-
-            <article class="article-card">
-
-                <!-- Article Header -->
-
-                <div class="article-header">
-
-                    <div class="badges">
-
-                        <span class="category">
-                            {{ article["category"] }}
-                        </span>
-
-
-                        <span class="priority priority-{{ article['priority']|lower }}">
-                            {{ article["priority"] }}
-                        </span>
-
+                <div class="card-body">
+                    <div class="card-meta-line">
+                        <span class="card-meta-location">📍 {{ item["location"] or "Tamil Nadu" }}</span>
+                        {% if item["published_at"] %}
+                        <span class="card-meta-date">🕒 {{ item["published_at"][:10] }}</span>
+                        {% endif %}
                     </div>
-
-
-                    <span class="location">
-                        📍 {{ article["location"] }}
-                    </span>
-
-                </div>
-
-
-                <!-- Article Title -->
-
-                <h2 class="article-title">
-
-                    {{ article["title"] }}
-
-                </h2>
-
-
-                <!-- Source -->
-
-                <p class="source">
-
-                    📰 {{ article["source"] }}
-
-                    {% if article["published_at"] %}
-
-                    <span class="separator">
-                        •
-                    </span>
-
-                    🕒 {{ article["published_at"] }}
-
-                    {% endif %}
-
-                </p>
-
-
-                <!-- AI Summary -->
-
-                {% if article["summary"] %}
-
-                <div class="summary">
-
-                    <h3>
-                        🤖 AI Summary
-                    </h3>
-
-                    <p>
-                        {{ article["summary"] }}
+                    <h3 class="card-title" title="{{ item['title'] }}">{{ item["title"] }}</h3>
+                    <p class="card-snippet">
+                        {{ item["summary"] or item["description"][:140] }}
                     </p>
-
+                    <div class="card-footer">
+                        <a href="{{ item['url'] }}" target="_blank" rel="noopener noreferrer" class="btn-read-yellow">
+                            READ ARTICLE <span>→</span>
+                        </a>
+                    </div>
                 </div>
-
-                {% endif %}
-
-
-                <!-- Recommended Action -->
-
-                {% if article["recommended_action"] %}
-
-                <div class="action">
-
-                    <h3>
-                        ✅ Recommended Action
-                    </h3>
-
-                    <p>
-                        {{ article["recommended_action"] }}
-                    </p>
-
-                </div>
-
-                {% endif %}
-
-
-                <!-- Original Article -->
-
-                {% if article["url"] %}
-
-                <a href="{{ article['url'] }}" target="_blank" rel="noopener noreferrer" class="read-more">
-                    Read Original Article →
-                </a>
-
-                {% endif %}
-
             </article>
-
             {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-curated-state">
+        <p>No verified community campaign records currently available in this filter cycle.</p>
+    </div>
+    {% endif %}
+</section>
 
+<!-- SECTION 2: Latest Air Quality News (Visually Rich Grid) -->
+<section class="curated-section air-section" aria-labelledby="airHeading">
+    <div class="section-top-bar">
+        <div>
+            <div class="section-kicker">🌬️ ATMOSPHERE &amp; POLLUTION MONITOR</div>
+            <h2 id="airHeading" class="section-main-heading">Latest Air Quality &amp; Environmental News</h2>
+            <p class="section-subtext">Real-time alerts regarding air quality indices, emissions regulations, smog advisories, and weather impacts.</p>
+        </div>
+        <a href="/articles?category=Water+%26+Pollution" class="section-view-all">View All Air Alerts →</a>
+    </div>
 
-            {% else %}
-
-            <!-- No Articles -->
-
-            <div class="empty">
-
-                <div class="empty-icon">
-                    🌱
+    {% if air_quality_articles %}
+    <div class="air-cards-grid">
+        {% for article in air_quality_articles %}
+        <article class="air-card">
+            <div class="air-card-image-wrap">
+                <img
+                    src="{{ url_for('static', filename='images/air_quality.jpg') }}"
+                    alt="EcoPulse Air Quality News"
+                    class="air-card-img"
+                    loading="lazy"
+                >
+                <div class="air-card-overlay-badges">
+                    <span class="badge-air-category">{{ article["category"] }}</span>
+                    <span class="priority-pill priority-{{ article['priority']|lower }}">
+                        {{ article["priority"] }}
+                    </span>
                 </div>
-
-                <h2>
-                    No relevant articles found
-                </h2>
-
-                <p>
-                    Run the EcoPulse pipeline to collect
-                    and analyze news articles.
+            </div>
+            <div class="air-card-content">
+                <div class="air-meta-bar">
+                    <span class="air-location">📍 {{ article["location"] or "Chennai / TN" }}</span>
+                    {% if article["published_at"] %}
+                    <span class="air-date">🕒 {{ article["published_at"][:10] }}</span>
+                    {% endif %}
+                </div>
+                <h3 class="air-card-title">{{ article["title"] }}</h3>
+                <p class="air-card-summary">
+                    {{ article["summary"] or article["description"][:160] }}
                 </p>
+                {% if article["recommended_action"] %}
+                <div class="air-card-action">
+                    <strong>Action:</strong> {{ article["recommended_action"] }}
+                </div>
+                {% endif %}
+                <div class="air-card-actions">
+                    <a href="{{ article['url'] }}" target="_blank" rel="noopener noreferrer" class="btn-read-yellow">
+                        READ ARTICLE <span>→</span>
+                    </a>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-curated-state">
+        <p>No air quality alerts recorded under current filters.</p>
+    </div>
+    {% endif %}
+</section>
 
+<!-- Section 3: All Community Eco Alerts (Filtered Results List) -->
+<section class="articles-main-section" aria-labelledby="alertsHeading">
+    <div class="section-top-bar">
+        <div>
+            <div class="section-kicker">📋 COMPREHENSIVE STREAM</div>
+            <h2 id="alertsHeading" class="section-main-heading">Latest Eco Alerts</h2>
+            <p class="section-subtext">All verified environmental and civic intelligence collected from monitored feeds.</p>
+        </div>
+        <div class="results-counter">
+            <span class="count-badge">{{ articles|length }}</span> article(s) found
+        </div>
+    </div>
+
+    {% if articles %}
+    <div class="alerts-feed-grid">
+        {% for article in articles %}
+        <article class="feed-article-card priority-border-{{ article['priority']|lower }}">
+            <div class="feed-card-header">
+                <div class="badges-group">
+                    <span class="category-badge">{{ article["category"] }}</span>
+                    <span class="priority-pill priority-{{ article['priority']|lower }}">
+                        {{ article["priority"] }}
+                    </span>
+                </div>
+                <span class="feed-location">📍 {{ article["location"] or "Tamil Nadu" }}</span>
             </div>
 
+            <h3 class="feed-article-title">
+                <a href="{{ article['url'] }}" target="_blank" rel="noopener noreferrer">
+                    {{ article["title"] }}
+                </a>
+            </h3>
+
+            <div class="feed-meta-row">
+                <span class="feed-source">📰 {{ article["source"] }}</span>
+                {% if article["published_at"] %}
+                <span class="meta-dot">•</span>
+                <span class="feed-time">🕒 {{ article["published_at"] }}</span>
+                {% endif %}
+            </div>
+
+            {% if article["summary"] %}
+            <div class="summary-box">
+                <div class="summary-label">
+                    <span class="ai-chip">🤖 AI Summary</span>
+                </div>
+                <p class="summary-text">{{ article["summary"] }}</p>
+            </div>
+            {% elif article["description"] %}
+            <div class="summary-box">
+                <p class="summary-text">{{ article["description"] }}</p>
+            </div>
             {% endif %}
 
-        </section>
+            {% if article["recommended_action"] %}
+            <div class="action-box">
+                <div class="action-label">✅ Recommended Action:</div>
+                <p class="action-text">{{ article["recommended_action"] }}</p>
+            </div>
+            {% endif %}
 
-    </main>
+            <div class="feed-card-footer">
+                <a href="{{ article['url'] }}" target="_blank" rel="noopener noreferrer" class="btn-read-yellow">
+                    READ ORIGINAL ARTICLE <span>→</span>
+                </a>
+                <a href="/article/{{ article['id'] }}" class="btn-details-link">
+                    View Details
+                </a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
 
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state-panel">
+        <div class="empty-icon-leaf">🌱</div>
+        <h2>No relevant articles found</h2>
+        <p>No alerts match your current search query or filter selection. Try adjusting the category, priority, or date filters to view more results.</p>
+        <div class="empty-actions">
+            <a href="/" class="btn-reset">Clear All Filters</a>
+        </div>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
 
-    <footer>
+{% block scripts %}
+<script>
+    // Horizontal carousel scroll buttons for Community Projects
+    const carouselTrack = document.getElementById('communityCarouselTrack');
+    const prevBtn = document.getElementById('carouselPrevBtn');
+    const nextBtn = document.getElementById('carouselNextBtn');
 
-        <p>
-            EcoPulse · Community News & Eco-Alert Aggregator
-        </p>
-
-    </footer>
-
-
-</body>
-
-</html>
+    if (carouselTrack && prevBtn && nextBtn) {
+        prevBtn.addEventListener('click', () => {
+            carouselTrack.scrollBy({ left: -340, behavior: 'smooth' });
+        });
+        nextBtn.addEventListener('click', () => {
+            carouselTrack.scrollBy({ left: 340, behavior: 'smooth' });
+        });
+    }
+</script>
+{% endblock %}

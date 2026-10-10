@@ -35,6 +35,96 @@ def run_test(number, title, description, expected, provider):
     return actual == expected
 
 
+RELEVANCE_TEST_CASES = [
+    (
+        1,
+        "Heavy rainfall causes flooding in Chennai",
+        "Several areas of Chennai experienced severe flooding after heavy rainfall.",
+        True,
+    ),
+    (
+        2,
+        "Waterlogging reported in several parts of Chennai",
+        "Heavy rain caused waterlogging on roads and affected local residents.",
+        True,
+    ),
+    (
+        3,
+        "Cyclone warning issued for Tamil Nadu coast",
+        "Authorities issued a warning because of an approaching cyclone.",
+        True,
+    ),
+    (
+        4,
+        "Chennai air quality deteriorates",
+        "Air pollution levels increased across several parts of Chennai.",
+        True,
+    ),
+    (
+        5,
+        "Water shortage expected in Chennai",
+        "Residents have been advised to conserve water because reservoir levels are low.",
+        True,
+    ),
+    (
+        6,
+        "Plastic waste cleanup drive held in Chennai",
+        "Volunteers collected plastic waste from a public area as part of a recycling initiative.",
+        True,
+    ),
+    (
+        7,
+        "Actor announces new movie",
+        "The actor discussed an upcoming cinema release.",
+        False,
+    ),
+    (
+        8,
+        "India wins cricket match",
+        "The team won an important cricket tournament match.",
+        False,
+    ),
+    (
+        9,
+        "Company reports higher quarterly profits",
+        "The company announced increased revenue and profits.",
+        False,
+    ),
+    (
+        10,
+        "Man arrested for alleged financial fraud",
+        "Police arrested a person in connection with a financial fraud investigation.",
+        False,
+    ),
+    (
+        11,
+        "Schools closed because of heavy rainfall",
+        "Schools in several districts were closed because of severe rainfall and flooding.",
+        True,
+    ),
+    (
+        12,
+        "Chennai roads flooded after overnight rain",
+        "Several roads were flooded and traffic was disrupted following heavy rain.",
+        True,
+    ),
+]
+
+
+def test_relevance_filter():
+    """Verify MockHeuristicProvider relevance classification for sample articles."""
+    provider = MockHeuristicProvider()
+    for number, title, description, expected in RELEVANCE_TEST_CASES:
+        result = check_relevance(
+            title=title,
+            description=description,
+            provider=provider,
+        )
+        assert result["is_relevant"] == expected, (
+            f"Test {number} failed for '{title}': expected {expected}, got {result['is_relevant']}"
+        )
+
+
 def main():
     print("=" * 70)
     print("EcoPulse Relevance Filter Test")
@@ -43,91 +133,7 @@ def main():
     # Use mock provider so this test does NOT consume Gemini quota.
     provider = MockHeuristicProvider()
 
-    tests = [
-        (
-            1,
-            "Heavy rainfall causes flooding in Chennai",
-            "Several areas of Chennai experienced severe flooding after heavy rainfall.",
-            True,
-        ),
-
-        (
-            2,
-            "Waterlogging reported in several parts of Chennai",
-            "Heavy rain caused waterlogging on roads and affected local residents.",
-            True,
-        ),
-
-        (
-            3,
-            "Cyclone warning issued for Tamil Nadu coast",
-            "Authorities issued a warning because of an approaching cyclone.",
-            True,
-        ),
-
-        (
-            4,
-            "Chennai air quality deteriorates",
-            "Air pollution levels increased across several parts of Chennai.",
-            True,
-        ),
-
-        (
-            5,
-            "Water shortage expected in Chennai",
-            "Residents have been advised to conserve water because reservoir levels are low.",
-            True,
-        ),
-
-        (
-            6,
-            "Plastic waste cleanup drive held in Chennai",
-            "Volunteers collected plastic waste from a public area as part of a recycling initiative.",
-            True,
-        ),
-
-        (
-            7,
-            "Actor announces new movie",
-            "The actor discussed an upcoming cinema release.",
-            False,
-        ),
-
-        (
-            8,
-            "India wins cricket match",
-            "The team won an important cricket tournament match.",
-            False,
-        ),
-
-        (
-            9,
-            "Company reports higher quarterly profits",
-            "The company announced increased revenue and profits.",
-            False,
-        ),
-
-        (
-            10,
-            "Man arrested for alleged financial fraud",
-            "Police arrested a person in connection with a financial fraud investigation.",
-            False,
-        ),
-
-        (
-            11,
-            "Schools closed because of heavy rainfall",
-            "Schools in several districts were closed because of severe rainfall and flooding.",
-            True,
-        ),
-
-        (
-            12,
-            "Chennai roads flooded after overnight rain",
-            "Several roads were flooded and traffic was disrupted following heavy rain.",
-            True,
-        ),
-    ]
+    tests = RELEVANCE_TEST_CASES
 
     passed = 0
     failed = 0

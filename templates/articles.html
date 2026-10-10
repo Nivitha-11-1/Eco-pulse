@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}All Eco Alerts & Articles — EcoPulse{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-title-banner">
+    <div class="page-title-content">
+        <span class="page-kicker">ARCHIVE &amp; EXPLORER</span>
+        <h1 class="page-heading">Environmental Alerts &amp; News</h1>
+        <p class="page-subheading">
+            Browse, search, and filter verified regional environmental and civic reports collected across all active feeds.
+        </p>
+    </div>
+</div>
+
+<!-- Search and Filter Panel -->
+<section class="filter-panel" aria-label="Articles Search and Filters">
+    <form method="GET" action="/articles" class="filter-form">
+        <div class="filter-controls-grid">
+            <!-- Keyword Search -->
+            <div class="form-group form-search">
+                <label for="searchInput">Keyword Search</label>
+                <div class="input-with-icon">
+                    <span class="input-icon">🔎</span>
+                    <input
+                        type="text"
+                        name="search"
+                        id="searchInput"
+                        placeholder="Search headlines, locations, summaries..."
+                        value="{{ selected_search }}"
+                    >
+                </div>
+            </div>
+
+            <!-- Category Dropdown -->
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select name="category" id="category">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>
+                        {{ cat }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Priority Dropdown -->
+            <div class="form-group">
+                <label for="priority">Priority</label>
+                <select name="priority" id="priority">
+                    <option value="">All Priorities</option>
+                    {% for prio in priorities %}
+                    <option value="{{ prio }}" {% if selected_priority == prio %}selected{% endif %}>
+                        {{ prio }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date Range Dropdown -->
+            <div class="form-group">
+                <label for="date_range">Article Date</label>
+                <select name="date_range" id="date_range">
+                    <option value="today" {% if selected_date_range == "today" %}selected{% endif %}>Today</option>
+                    <option value="7days" {% if selected_date_range == "7days" %}selected{% endif %}>Last 7 Days</option>
+                    <option value="all" {% if selected_date_range == "all" %}selected{% endif %}>All Articles</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn-filter">
+                <span>Apply Filters</span>
+            </button>
+            <a href="/articles" class="btn-reset">Reset</a>
+        </div>
+    </form>
+</section>
+
+<!-- Results Header & Pagination Info -->
+<div class="articles-results-bar">
+    <div class="results-stats">
+        <strong>{{ total_count }}</strong> article(s) found
+        {% if total_count > 0 %}
+        <span class="pagination-counter-label">• Page {{ page }} of {{ total_pages }}</span>
+        {% endif %}
+    </div>
+</div>
+
+{% if articles %}
+<div class="alerts-feed-grid">
+    {% for article in articles %}
+    <article class="feed-article-card priority-border-{{ article['priority']|lower }}">
+        <div class="feed-card-header">
+            <div class="badges-group">
+                <span class="category-badge">{{ article["category"] }}</span>
+                <span class="priority-pill priority-{{ article['priority']|lower }}">
+                    {{ article["priority"] }}
+                </span>
+            </div>
+            <span class="feed-location">📍 {{ article["location"] or "Tamil Nadu" }}</span>
+        </div>
+
+        <h2 class="feed-article-title">
+            <a href="{{ article['url'] }}" target="_blank" rel="noopener noreferrer">
+                {{ article["title"] }}
+            </a>
+        </h2>
+
+        <div class="feed-meta-row">
+            <span class="feed-source">📰 {{ article["source"] }}</span>
+            {% if article["published_at"] %}
+            <span class="meta-dot">•</span>
+            <span class="feed-time">🕒 {{ article["published_at"] }}</span>
+            {% endif %}
+        </div>
+
+        {% if article["summary"] %}
+        <div class="summary-box">
+            <div class="summary-label">
+                <span class="ai-chip">🤖 AI Summary</span>
+            </div>
+            <p class="summary-text">{{ article["summary"] }}</p>
+        </div>
+        {% elif article["description"] %}
+        <div class="summary-box">
+            <p class="summary-text">{{ article["description"] }}</p>
+        </div>
+        {% endif %}
+
+        {% if article["recommended_action"] %}
+        <div class="action-box">
+            <div class="action-label">✅ Recommended Action:</div>
+            <p class="action-text">{{ article["recommended_action"] }}</p>
+        </div>
+        {% endif %}
+
+        <div class="feed-card-footer">
+            <a href="{{ article['url'] }}" target="_blank" rel="noopener noreferrer" class="btn-read-yellow">
+                READ ORIGINAL ARTICLE <span>→</span>
+            </a>
+            <a href="/article/{{ article['id'] }}" class="btn-details-link">
+                View Full Details
+            </a>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+
+<!-- Pagination Controls -->
+{% if total_pages > 1 %}
+<nav class="pagination-container" aria-label="Article Pagination">
+    <ul class="pagination-list">
+        {% if page > 1 %}
+        <li class="page-item">
+            <a
+                class="page-link prev-link"
+                href="?page={{ page - 1 }}&search={{ selected_search }}&category={{ selected_category }}&priority={{ selected_priority }}&date_range={{ selected_date_range }}"
+                aria-label="Previous page"
+            >
+                ← Previous
+            </a>
+        </li>
+        {% endif %}
+
+        {% for p in page_numbers %}
+        <li class="page-item">
+            <a
+                class="page-link {% if p == page %}active{% endif %}"
+                href="?page={{ p }}&search={{ selected_search }}&category={{ selected_category }}&priority={{ selected_priority }}&date_range={{ selected_date_range }}"
+                {% if p == page %}aria-current="page"{% endif %}
+            >
+                {{ p }}
+            </a>
+        </li>
+        {% endfor %}
+
+        {% if page < total_pages %}
+        <li class="page-item">
+            <a
+                class="page-link next-link"
+                href="?page={{ page + 1 }}&search={{ selected_search }}&category={{ selected_category }}&priority={{ selected_priority }}&date_range={{ selected_date_range }}"
+                aria-label="Next page"
+            >
+                Next →
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<!-- Empty State -->
+<div class="empty-state-panel">
+    <div class="empty-icon-leaf">🌱</div>
+    <h2>No relevant articles found</h2>
+    <p>No articles match your search parameters. Try adjusting or clearing your filters to see more results.</p>
+    <div class="empty-actions">
+        <a href="/articles" class="btn-reset">Reset All Filters</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

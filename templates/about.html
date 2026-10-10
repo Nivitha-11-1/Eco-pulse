@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}About EcoPulse — Automated Community News & Eco-Alert Aggregator{% endblock %}
+
+{% block content %}
+<div class="about-container">
+    <!-- About Header -->
+    <div class="about-hero">
+        <span class="about-kicker">CIVIC ENVIRONMENTAL PLATFORM</span>
+        <h1 class="about-title">About EcoPulse</h1>
+        <p class="about-lead">
+            EcoPulse is an automated civic intelligence platform designed to aggregate, verify, and prioritize environmental, weather, and sustainability news across Tamil Nadu and the Chennai metropolitan region.
+        </p>
+    </div>
+
+    <!-- Purpose & Problem Statement Grid -->
+    <div class="about-grid-two">
+        <div class="about-card">
+            <div class="about-card-icon">🎯</div>
+            <h3>Project Purpose</h3>
+            <p>
+                To provide citizens, campus leaders, urban planners, and environmental advocates with a single, reliable, real-time dashboard of localized ecological alerts, air quality warnings, climate shifts, civic notices, and sustainability initiatives.
+            </p>
+        </div>
+
+        <div class="about-card">
+            <div class="about-card-icon">⚠️</div>
+            <h3>Problem Statement</h3>
+            <p>
+                Environmental news and civic announcements are highly fragmented across dozens of legacy news portals, university notices, and governmental feeds. Critical air-quality advisories, heatwaves, water contamination alerts, and grassroots campus sustainability drives often get buried beneath general headlines.
+            </p>
+        </div>
+    </div>
+
+    <!-- Key Features -->
+    <section class="about-section">
+        <div class="section-top-bar">
+            <div>
+                <div class="section-kicker">PLATFORM CAPABILITIES</div>
+                <h2 class="section-main-heading">Key Features</h2>
+            </div>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <span class="feature-icon">📡</span>
+                <h4>Continuous Feed Ingestion</h4>
+                <p>Monitors 7 established regional and national RSS feeds with smart deduplication and error isolation.</p>
+            </div>
+
+            <div class="feature-card">
+                <span class="feature-icon">🤖</span>
+                <h4>AI Relevance Filtering</h4>
+                <p>Evaluates every article using Google Gemini AI or local heuristic reasoning to filter out noise and retain genuine environmental news.</p>
+            </div>
+
+            <div class="feature-card">
+                <span class="feature-icon">🚦</span>
+                <h4>Priority Classification</h4>
+                <p>Categorizes news into High, Medium, or Low urgency so hazardous events (cyclones, toxic emissions) stand out immediately.</p>
+            </div>
+
+            <div class="feature-card">
+                <span class="feature-icon">📝</span>
+                <h4>Concise Summarization</h4>
+                <p>Generates actionable 2-3 sentence summaries and recommended citizen actions for rapid comprehension.</p>
+            </div>
+
+            <div class="feature-card">
+                <span class="feature-icon">⏰</span>
+                <h4>Daily Automated Pipeline</h4>
+                <p>Runs scheduled aggregation every morning at 7:00 AM IST via GitHub Actions and APScheduler.</p>
+            </div>
+
+            <div class="feature-card">
+                <span class="feature-icon">📱</span>
+                <h4>Responsive Clean UI</h4>
+                <p>Forest-green modern dashboard with interactive search, category filters, and horizontal community carousels.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Data Sources & Monitored Feeds -->
+    <section class="about-section">
+        <div class="section-top-bar">
+            <div>
+                <div class="section-kicker">SOURCE REGISTRY</div>
+                <h2 class="section-main-heading">Monitored RSS Feeds</h2>
+                <p class="section-subtext">All seven active sources configured in the EcoPulse ingestion pipeline.</p>
+            </div>
+        </div>
+
+        <div class="feeds-table-wrapper">
+            <table class="feeds-table">
+                <thead>
+                    <tr>
+                        <th>Source Name</th>
+                        <th>Coverage Domain</th>
+                        <th>Feed URL</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for feed in feeds %}
+                    <tr>
+                        <td class="feed-name-cell">
+                            <strong>{{ feed["name"] }}</strong>
+                        </td>
+                        <td>
+                            <span class="feed-domain-badge">{{ feed["type"]|capitalize }} ({{ feed["location"] }})</span>
+                        </td>
+                        <td class="feed-url-cell">
+                            <a href="{{ feed['url'] }}" target="_blank" rel="noopener noreferrer" class="feed-url-link">
+                                {{ feed["url"] }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="feed-status-badge active">● Active</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- AI Pipeline Architecture -->
+    <section class="about-section">
+        <div class="section-top-bar">
+            <div>
+                <div class="section-kicker">INTELLIGENCE ARCHITECTURE</div>
+                <h2 class="section-main-heading">AI Relevance &amp; Classification</h2>
+            </div>
+        </div>
+
+        <div class="ai-architecture-box">
+            <div class="arch-step">
+                <div class="arch-step-num">1</div>
+                <h4>Feed Parsing</h4>
+                <p>Articles fetched via <code>feedparser</code>, sanitized using <code>BeautifulSoup</code>, and checked against SQLite URL hashes.</p>
+            </div>
+            <div class="arch-arrow">➔</div>
+            <div class="arch-step">
+                <div class="arch-step-num">2</div>
+                <h4>Relevance Filter</h4>
+                <p>Evaluated against environmental guidelines using Gemini AI (or resilient local heuristic rules when offline/quota-limited).</p>
+            </div>
+            <div class="arch-arrow">➔</div>
+            <div class="arch-step">
+                <div class="arch-step-num">3</div>
+                <h4>Classification</h4>
+                <p>Assigned to specific categories (Air Quality, Weather, Waste, Campus) and priority level (High, Medium, Low).</p>
+            </div>
+            <div class="arch-arrow">➔</div>
+            <div class="arch-step">
+                <div class="arch-step-num">4</div>
+                <h4>Storage &amp; Display</h4>
+                <p>Saved with UTC/IST timestamps into SQLite, immediately rendered onto the live Flask web dashboard.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section class="about-section">
+        <div class="section-top-bar">
+            <div>
+                <div class="section-kicker">ENGINEERING SPECIFICATIONS</div>
+                <h2 class="section-main-heading">Technology Stack</h2>
+            </div>
+        </div>
+
+        <div class="stack-grid">
+            <div class="stack-item">
+                <span class="stack-title">Backend</span>
+                <span class="stack-value">Python 3.13, Flask 3.0</span>
+            </div>
+            <div class="stack-item">
+                <span class="stack-title">Database</span>
+                <span class="stack-value">SQLite with WAL mode</span>
+            </div>
+            <div class="stack-item">
+                <span class="stack-title">Ingestion</span>
+                <span class="stack-value">feedparser, BeautifulSoup4, requests</span>
+            </div>
+            <div class="stack-item">
+                <span class="stack-title">AI Engine</span>
+                <span class="stack-value">Google Gemini API / Heuristic Fallback</span>
+            </div>
+            <div class="stack-item">
+                <span class="stack-title">Automation</span>
+                <span class="stack-value">GitHub Actions (cron: 30 1 * * *)</span>
+            </div>
+            <div class="stack-item">
+                <span class="stack-title">Production Server</span>
+                <span class="stack-value">Gunicorn WSGI</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Known Limitations -->
+    <section class="about-section limitations-section">
+        <div class="section-top-bar">
+            <div>
+                <div class="section-kicker">TRANSPARENCY &amp; BOUNDARIES</div>
+                <h2 class="section-main-heading">Current System Limitations</h2>
+            </div>
+        </div>
+
+        <div class="limitations-card">
+            <ul>
+                <li><strong>Event Booking &amp; Registration:</strong> EcoPulse aggregates news reports of community campaigns and events; it does not host interactive ticket sales or live attendee registration forms. Users are linked to original publishers for registration details.</li>
+                <li><strong>Public Runner Storage:</strong> GitHub Actions runners run in ephemeral virtual machines. Updates performed solely inside a workflow runner require synchronization with shared persistent storage to update the live public site.</li>
+                <li><strong>AI Rate Limits:</strong> The free-tier Gemini API can hit RPM/TPD limits during bulk runs. The pipeline seamlessly utilizes local heuristic rule fallbacks so no feed collection is dropped.</li>
+                <li><strong>Feed Metadata Variations:</strong> Some legacy news outlets omit standardized geographical tags or pubdates in their RSS feeds, falling back to article collection timestamps.</li>
+            </ul>
+        </div>
+    </section>
+</div>
+{% endblock %}

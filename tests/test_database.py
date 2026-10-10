@@ -39,6 +39,9 @@ from database.database import (
 TEST_DB_PATH = ROOT_DIR / "data" / "test_news.db"
 
 
+import pytest
+
+
 def cleanup_test_db():
     """Remove temporary test database if it exists."""
     if TEST_DB_PATH.exists():
@@ -46,6 +49,14 @@ def cleanup_test_db():
             os.remove(TEST_DB_PATH)
         except Exception:
             pass
+
+
+@pytest.fixture(autouse=True)
+def auto_cleanup():
+    """Ensure clean state before and after every test."""
+    cleanup_test_db()
+    yield
+    cleanup_test_db()
 
 
 def test_database_initialization_and_file_existence():
@@ -129,6 +140,28 @@ def test_query_filters_and_search():
     """Verify filtering articles by priority, category, and search term."""
     initialize_database(TEST_DB_PATH)
 
+    sample_articles = [
+        {
+            "title": "Severe Rain and Waterlogging Alert for Chennai Central",
+            "description": "Heavy rainfall across coastal Tamil Nadu.",
+            "url": "https://example.com/alerts/waterlogging-chennai",
+            "category": "Environmental Alert",
+            "priority": "HIGH",
+            "location": "Chennai",
+            "is_relevant": 1,
+        },
+        {
+            "title": "Solar Energy in Coimbatore",
+            "description": "Solar expansion project.",
+            "url": "https://example.com/alerts/solar-coimbatore",
+            "category": "Energy",
+            "priority": "LOW",
+            "location": "Coimbatore",
+            "is_relevant": 1,
+        },
+    ]
+    insert_articles(sample_articles, db_path=TEST_DB_PATH)
+
     # Search for term
     results = get_articles(search="waterlogging", db_path=TEST_DB_PATH)
     assert len(results) >= 1
@@ -147,10 +180,19 @@ def test_query_filters_and_search():
 def test_statistics_aggregation():
     """Verify statistics calculation matches stored counts."""
     initialize_database(TEST_DB_PATH)
+    sample_articles = [
+        {"title": "Article 1", "url": "https://example.com/stats-1", "priority": "HIGH", "category": "Climate", "is_relevant": 1},
+        {"title": "Article 2", "url": "https://example.com/stats-2", "priority": "MEDIUM", "category": "Water", "is_relevant": 1},
+        {"title": "Article 3", "url": "https://example.com/stats-3", "priority": "LOW", "category": "Other", "is_relevant": 0},
+    ]
+    insert_articles(sample_articles, db_path=TEST_DB_PATH)
     stats = get_statistics(db_path=TEST_DB_PATH)
 
-    assert stats["total_articles"] >= 3
-    assert stats["high_priority_count"] >= 1
+    assert stats["total_articles"] == 3
+    assert stats["high_priority_count"] == 1
+    assert stats["medium_priority_count"] == 1
+    assert stats["low_priority_count"] == 1
+    assert stats["relevant_articles"] == 2
     assert "total_articles" in stats
     assert "today_articles" in stats
     assert "category_breakdown" in stats

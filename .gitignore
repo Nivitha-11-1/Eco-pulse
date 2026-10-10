@@ -18,6 +18,7 @@ env/
 *.sqlite
 *.sqlite3
 *.bak
+*_backup_*.py
 
 # IDE and OS files
 .vscode/

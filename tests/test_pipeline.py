@@ -24,6 +24,8 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+import pytest
+
 from database.database import (
     initialize_database,
     get_articles,
@@ -41,6 +43,35 @@ def cleanup_db(db_path: Path):
                 os.remove(p)
             except Exception:
                 pass
+
+
+@pytest.fixture(autouse=True)
+def mock_ai_and_cleanup():
+    """Mock classifier and summarizer during pipeline tests and ensure clean DB teardown."""
+    with patch("pipeline.get_classifier") as mock_cls_getter, \
+         patch("pipeline.get_summarizer") as mock_sum_getter:
+        mock_cls = MagicMock()
+        mock_cls.classify.return_value = {
+            "category": "Climate & Weather",
+            "priority": "HIGH",
+            "location": "Tamil Nadu",
+        }
+        mock_cls_getter.return_value = mock_cls
+
+        mock_sum = MagicMock()
+        mock_sum.summarize.return_value = {
+            "summary": "Mock summary of article.",
+            "recommended_action": "Stay informed.",
+        }
+        mock_sum_getter.return_value = mock_sum
+        yield
+
+    # Teardown: clean up any test DB files created during test runs
+    for p in (ROOT_DIR / "data").glob("test_pipeline_*.db*"):
+        try:
+            os.remove(p)
+        except Exception:
+            pass
 
 
 def get_mock_articles():

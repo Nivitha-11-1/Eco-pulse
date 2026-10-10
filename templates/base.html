@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="EcoPulse - Automated Community News & Eco-Alert Aggregator. Real-time environmental alerts, air quality updates, climate news, and community sustainability initiatives.">
+    <meta name="theme-color" content="#1b4332">
+    <title>{% block title %}EcoPulse — Automated Community News & Eco-Alert Aggregator{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Top Environmental Announcement Banner -->
+    <div class="top-announcement-bar">
+        <div class="container top-bar-inner">
+            <span class="tagline-badge">🌱 Cleaner Communities, Greener Tomorrow</span>
+            <span class="update-pulse">Live RSS Feed Aggregation • Automated AI Analysis</span>
+        </div>
+    </div>
+
+    <!-- Main Forest Green Header -->
+    <header class="header">
+        <div class="header-container">
+            <div class="header-brand">
+                <a href="/" class="brand-link">
+                    <div class="logo-leaf-icon" aria-hidden="true">
+                        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 30C6 30 7.8 21.6 15 14.4C22.2 7.2 30 6 30 6C30 6 28.8 13.8 21.6 21C14.4 28.2 6 30 6 30Z" fill="#52b788"/>
+                            <path d="M15 14.4C19.2 18.6 24 23.4 30 30" stroke="#d8f3dc" stroke-width="2.5" stroke-linecap="round"/>
+                            <path d="M15 14.4C10.5 17 6 21 6 30" stroke="#1b4332" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="brand-text">
+                        <h1 class="brand-title">EcoPulse</h1>
+                        <p class="brand-subtitle">Automated Community News &amp; Eco-Alert Aggregator</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Desktop Navigation -->
+            <nav class="nav-menu" id="navMenu" aria-label="Main Navigation">
+                <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                    <span class="nav-icon">🏠</span> Home
+                </a>
+                <a href="/articles" class="nav-link {% if request.path == '/articles' %}active{% endif %}">
+                    <span class="nav-icon">📰</span> Articles
+                </a>
+                <a href="/about" class="nav-link {% if request.path == '/about' %}active{% endif %}">
+                    <span class="nav-icon">ℹ️</span> About
+                </a>
+            </nav>
+
+            <!-- Mobile Nav Toggle Button -->
+            <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation menu" aria-expanded="false">
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Panel (Clean off-white background) -->
+    <main class="content-panel">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Professional Environmental Footer -->
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-col brand-col">
+                <div class="footer-logo">
+                    <span class="leaf-emoji">🌱</span>
+                    <span class="footer-brand-name">EcoPulse</span>
+                </div>
+                <p class="footer-tagline">Automated Community News &amp; Eco-Alert Aggregator</p>
+                <p class="footer-mission">
+                    Dedicated to tracking local environmental news, air quality hazards, weather anomalies, and campus sustainability projects across Chennai and Tamil Nadu.
+                </p>
+            </div>
+            <div class="footer-col links-col">
+                <h4>Quick Navigation</h4>
+                <ul>
+                    <li><a href="/">Dashboard Overview</a></li>
+                    <li><a href="/articles">All Filtered Articles</a></li>
+                    <li><a href="/about">About &amp; RSS Architecture</a></li>
+                    <li><a href="/health">System Health Check</a></li>
+                </ul>
+            </div>
+            <div class="footer-col tech-col">
+                <h4>Verified Pipeline</h4>
+                <p class="tech-item">✓ 7 Continuous RSS Feeds Monitored</p>
+                <p class="tech-item">✓ AI-Powered Relevance &amp; Prioritization</p>
+                <p class="tech-item">✓ Automated Daily Aggregation at 7:00 AM IST</p>
+                <p class="footer-copy">&copy; 2026 EcoPulse. Open civic environmental intelligence.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile Navigation Toggle
+        const mobileToggle = document.getElementById('mobileToggle');
+        const navMenu = document.getElementById('navMenu');
+        if (mobileToggle && navMenu) {
+            mobileToggle.addEventListener('click', function() {
+                const expanded = mobileToggle.getAttribute('aria-expanded') === 'true';
+                mobileToggle.setAttribute('aria-expanded', !expanded);
+                navMenu.classList.toggle('open');
+            });
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

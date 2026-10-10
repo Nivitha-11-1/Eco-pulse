@@ -50,6 +50,30 @@ logging.basicConfig(
 
 logger = logging.getLogger("EcoPulse.Pipeline")
 
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
+def safe_print(*args, **kwargs):
+    """Safely print text handling Windows charmap / CP1252 encoding gracefully."""
+    end = kwargs.get("end", "\n")
+    sep = kwargs.get("sep", " ")
+    text = sep.join(str(arg) for arg in args) + end
+    try:
+        sys.stdout.write(text)
+        sys.stdout.flush()
+    except UnicodeEncodeError:
+        encoding = getattr(sys.stdout, "encoding", None) or "ascii"
+        sanitized = text.encode(encoding, errors="replace").decode(encoding, errors="replace")
+        sys.stdout.write(sanitized)
+        sys.stdout.flush()
+
 
 AI_ERROR_MARKERS = (
     "error",
@@ -77,20 +101,23 @@ def run_pipeline(
     db_path: Optional[Union[str, Path]] = None,
     verbose: bool = True,
     ai_provider=None,
+    classifier=None,
+    summarizer=None,
+    enable_quick_filter: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """Run the EcoPulse RSS-to-database pipeline."""
 
     if verbose:
-        print("\n" + "=" * 65)
-        print(" [EcoPulse] Pipeline Started")
-        print(" (Quick Filter + AI Relevance + Classification + Summary)")
-        print("=" * 65)
+        safe_print("\n" + "=" * 65)
+        safe_print(" [EcoPulse] Pipeline Started")
+        safe_print(" (Quick Filter + AI Relevance + Classification + Summary)")
+        safe_print("=" * 65)
 
     # 1. Initialize the database.
     target_db = initialize_database(db_path)
 
     if verbose:
-        print(f"[*] Database verified at: {target_db}")
+        safe_print(f"[*] Database verified at: {target_db}")
 
     # 2. Load existing signatures for deduplication.
     existing_records = get_all_article_signatures(db_path=target_db)
@@ -100,7 +127,7 @@ def run_pipeline(
         deduplicator.register_article(record)
 
     if verbose:
-        print(
+        safe_print(
             f"[*] Loaded {len(existing_records)} existing article "
             "signature(s) for deduplication."
         )
@@ -112,14 +139,20 @@ def run_pipeline(
     total_sources = len(sources)
 
     if verbose:
-        print(f"[*] Loaded {total_sources} active RSS source(s).\n")
+        safe_print(f"[*] Loaded {total_sources} active RSS source(s).\n")
 
     # 4. Initialize AI components.
     active_ai = (
         ai_provider if ai_provider is not None else get_ai_provider()
     )
-    classifier = get_classifier()
-    summarizer = get_summarizer()
+    active_classifier = (
+        classifier if classifier is not None else get_classifier()
+    )
+    active_summarizer = (
+        summarizer if summarizer is not None else get_summarizer()
+    )
+    if enable_quick_filter is None:
+        enable_quick_filter = (ai_provider is None)
 
     # 5. Pipeline statistics.
     stats = {
@@ -152,7 +185,7 @@ def run_pipeline(
         source_location = source.get("location", "General")
 
         if verbose:
-            print(
+            safe_print(
                 f"--> [{source_index}/{total_sources}] Fetching: "
                 f"'{source_name}' ({source_url})"
             )
@@ -173,7 +206,7 @@ def run_pipeline(
             )
 
             if verbose:
-                print(f"    [!] Source failed: {exc}\n")
+                safe_print(f"    [!] Source failed: {exc}\n")
 
             continue
 
@@ -184,7 +217,7 @@ def run_pipeline(
             stats["sources_processed"] += 1
 
             if verbose:
-                print("    [-] No articles collected.\n")
+                safe_print("    [-] No articles collected.\n")
 
             continue
 
@@ -225,7 +258,7 @@ def run_pipeline(
             title_preview = title[:60]
 
             # PHASE A: Quick keyword filter.
-            if not quick_relevance_check(title, description):
+            if enable_quick_filter and not quick_relevance_check(title, description):
                 stats["quick_filter_skipped"] += 1
                 stats["irrelevant_articles"] += 1
 
@@ -246,7 +279,7 @@ def run_pipeline(
                 articles_to_insert.append(article)
 
                 if verbose:
-                    print(
+                    safe_print(
                         f"    [Quick Filter] Skipped AI: "
                         f"'{title_preview}'"
                     )
@@ -257,7 +290,7 @@ def run_pipeline(
             stats["ai_articles_processed"] += 1
 
             if verbose:
-                print(f"    [AI] Checking relevance: '{title_preview}'")
+                safe_print(f"    [AI] Checking relevance: '{title_preview}'")
 
             # PHASE B: AI relevance check with fallback.
             relevance_reason = ""
@@ -320,19 +353,19 @@ def run_pipeline(
                 stats["irrelevant_articles"] += 1
 
             if verbose:
-                print(
+                safe_print(
                     f"    [AI] Relevant: "
                     f"{'YES' if is_relevant else 'NO'}"
                 )
-                print(f"    [AI] Reason: {relevance_reason}")
+                safe_print(f"    [AI] Reason: {relevance_reason}")
 
             # PHASE C: Classification.
             if is_relevant:
                 if verbose:
-                    print("    [AI] Classifying article...")
+                    safe_print("    [AI] Classifying article...")
 
                 try:
-                    classification = classifier.classify(
+                    classification = active_classifier.classify(
                         title=title,
                         description=description,
                     )
@@ -350,15 +383,15 @@ def run_pipeline(
                     stats["classified_articles"] += 1
 
                     if verbose:
-                        print(
+                        safe_print(
                             f"    [AI] Category: "
                             f"{article['category']}"
                         )
-                        print(
+                        safe_print(
                             f"    [AI] Priority: "
                             f"{article['priority']}"
                         )
-                        print(
+                        safe_print(
                             f"    [AI] Location: "
                             f"{article['location']}"
                         )
@@ -375,17 +408,17 @@ def run_pipeline(
                     article["location"] = source_location
 
                     if verbose:
-                        print(
+                        safe_print(
                             "    [AI] Classification failed: "
                             f"{type(exc).__name__}"
                         )
 
                 # PHASE D: Summary and recommended action.
                 if verbose:
-                    print("    [AI] Generating summary...")
+                    safe_print("    [AI] Generating summary...")
 
                 try:
-                    summary_result = summarizer.summarize(
+                    summary_result = active_summarizer.summarize(
                         title=title,
                         description=description,
                     )
@@ -404,7 +437,7 @@ def run_pipeline(
                         stats["summary_failures"] += 1
 
                         if verbose:
-                            print(
+                            safe_print(
                                 f"    [AI] Summary warning: "
                                 f"{summary_reason}"
                             )
@@ -412,11 +445,11 @@ def run_pipeline(
                         stats["summarized_articles"] += 1
 
                     if verbose:
-                        print(
+                        safe_print(
                             f"    [AI] Summary: "
                             f"{article['summary']}"
                         )
-                        print(
+                        safe_print(
                             f"    [AI] Action: "
                             f"{article['recommended_action']}"
                         )
@@ -434,7 +467,7 @@ def run_pipeline(
                     )
 
                     if verbose:
-                        print(
+                        safe_print(
                             "    [AI] Summarization failed: "
                             f"{type(exc).__name__}"
                         )
@@ -469,7 +502,7 @@ def run_pipeline(
                 )
 
                 if verbose:
-                    print("    [!] Database insertion failed.")
+                    safe_print("    [!] Database insertion failed.")
 
         stats["articles_inserted"] += inserted_count
         stats["duplicate_urls_skipped"] += source_url_duplicates
@@ -477,95 +510,95 @@ def run_pipeline(
         stats["sources_processed"] += 1
 
         if verbose:
-            print(f"    [+] Articles collected:              {article_count}")
-            print(f"    [+] New articles inserted:           {inserted_count}")
-            print(
+            safe_print(f"    [+] Articles collected:              {article_count}")
+            safe_print(f"    [+] New articles inserted:           {inserted_count}")
+            safe_print(
                 f"    [*] Duplicate URLs skipped:          "
                 f"{source_url_duplicates}"
             )
-            print(
+            safe_print(
                 f"    [*] Duplicate titles/content skipped: "
                 f"{source_title_duplicates}\n"
             )
 
     # Final pipeline summary.
     if verbose:
-        print("=" * 65)
-        print(" [EcoPulse] Pipeline Completed")
-        print("=" * 65)
+        safe_print("=" * 65)
+        safe_print(" [EcoPulse] Pipeline Completed")
+        safe_print("=" * 65)
 
-        print(
+        safe_print(
             f"  Total Articles Collected:           "
             f"{stats['articles_collected']}"
         )
-        print(
+        safe_print(
             f"  New Articles Inserted:              "
             f"{stats['articles_inserted']}"
         )
-        print(
+        safe_print(
             f"  Duplicate URLs Skipped:             "
             f"{stats['duplicate_urls_skipped']}"
         )
-        print(
+        safe_print(
             f"  Duplicate Titles/Content Skipped:   "
             f"{stats['duplicate_titles_skipped']}"
         )
-        print(
+        safe_print(
             f"  Quick Filter Skipped (no AI):       "
             f"{stats['quick_filter_skipped']}"
         )
-        print(
+        safe_print(
             f"  Quick Filter Passed:                "
             f"{stats['quick_filter_passed']}"
         )
-        print(
+        safe_print(
             f"  AI Articles Processed:              "
             f"{stats['ai_articles_processed']}"
         )
-        print(
+        safe_print(
             f"  Relevant Articles:                  "
             f"{stats['relevant_articles']}"
         )
-        print(
+        safe_print(
             f"  Irrelevant Articles:                "
             f"{stats['irrelevant_articles']}"
         )
-        print(f"  AI Failures:                        {stats['ai_failures']}")
-        print(
+        safe_print(f"  AI Failures:                        {stats['ai_failures']}")
+        safe_print(
             f"  Classified Articles:                "
             f"{stats['classified_articles']}"
         )
-        print(
+        safe_print(
             f"  Classification Failures:            "
             f"{stats['classification_failures']}"
         )
-        print(
+        safe_print(
             f"  Summarized Articles:                "
             f"{stats['summarized_articles']}"
         )
-        print(
+        safe_print(
             f"  Summary Failures:                   "
             f"{stats['summary_failures']}"
         )
-        print(
+        safe_print(
             f"  Sources Processed:                  "
             f"{stats['sources_processed']}/{total_sources}"
         )
-        print(
+        safe_print(
             f"  Sources Failed:                     {stats['sources_failed']}"
         )
 
         database_stats = get_statistics(db_path=target_db)
 
-        print(
+        safe_print(
             f"  Total Articles in Database Now:     "
             f"{database_stats.get('total_articles', 0)}"
         )
-        print(
+        safe_print(
             f"  Total Relevant Articles in DB:      "
             f"{database_stats.get('relevant_articles', 0)}"
         )
-        print("=" * 65 + "\n")
+        safe_print("=" * 65 + "\n")
 
     return stats
 

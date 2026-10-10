@@ -62,13 +62,33 @@ def test_missing_fields_handling():
 
 
 def test_collect_news_live_feed():
-    """Verify collecting news from a live reliable feed."""
+    """Verify collecting news from a feed with realistic RSS response."""
     test_source = RSS_SOURCES[0]
-    articles = collect_news(
-        feed_url=test_source["url"],
-        source_name=test_source["name"],
-        location=test_source["location"],
-    )
+    sample_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0">
+      <channel>
+        <title>The Hindu - Energy &amp; Environment</title>
+        <link>https://www.thehindu.com</link>
+        <description>Energy and Environment News</description>
+        <item>
+          <title>Solar Farm Project Commissioned in Tamil Nadu</title>
+          <link>https://www.thehindu.com/news/solar-farm-tn</link>
+          <description>New solar plant adds 50MW clean energy.</description>
+          <pubDate>Thu, 08 Oct 2026 10:00:00 +0530</pubDate>
+        </item>
+      </channel>
+    </rss>"""
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.content = sample_xml
+    mock_resp.raise_for_status = MagicMock()
+
+    with patch("requests.get", return_value=mock_resp):
+        articles = collect_news(
+            feed_url=test_source["url"],
+            source_name=test_source["name"],
+            location=test_source["location"],
+        )
 
     assert isinstance(articles, list)
     assert len(articles) > 0, f"Expected articles from {test_source['name']}"

@@ -1,13 +1,19 @@
+"""
+EcoPulse - Automated Community News & Eco-Alert Aggregator
+Web Dashboard & API Application
+"""
 
+import math
+import os
 import sqlite3
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from flask import Flask, render_template, request
+from flask import Flask, abort, render_template, request
 
+from collectors.source_config import RSS_SOURCES
 from config import config
-
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
@@ -16,13 +22,79 @@ DATABASE_PATH = Path(config.DATABASE_PATH)
 IST = ZoneInfo("Asia/Kolkata")
 
 
-def get_articles(category=None, priority=None, date_range="all"):
-    """Fetch articles using category, priority, and date filters."""
-
+def get_db_connection():
+    """Create a sqlite3 connection with Row factory."""
     conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row
+    return conn
 
-    query = """
+
+def build_filter_query(category=None, priority=None, date_range="all", search=None):
+    """Construct SQL WHERE clause and parameters for article filtering."""
+    clauses = ["1 = 1"]
+    params = []
+
+    if category:
+        clauses.append("LOWER(TRIM(category)) = LOWER(TRIM(?))")
+        params.append(category)
+    else:
+        clauses.append("is_relevant = 1")
+
+    if priority:
+        clauses.append("UPPER(TRIM(priority)) = UPPER(TRIM(?))")
+        params.append(priority)
+
+    if search:
+        search_pattern = f"%{search.strip().lower()}%"
+        clauses.append(
+            "(LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR "
+            "LOWER(summary) LIKE ? OR LOWER(location) LIKE ? OR "
+            "LOWER(source) LIKE ?)"
+        )
+        params.extend([search_pattern] * 5)
+
+    if date_range in ("today", "7days"):
+        now = datetime.now(IST)
+        if date_range == "today":
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:
+            start = (now - timedelta(days=6)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+
+        start_utc = start.astimezone(ZoneInfo("UTC"))
+        end_utc = now.astimezone(ZoneInfo("UTC"))
+
+        date_expression = (
+            "COALESCE(NULLIF(published_at, ''), NULLIF(collected_at, ''))"
+        )
+        clauses.append(f"{date_expression} >= ? AND {date_expression} <= ?")
+        params.extend([
+            start_utc.strftime("%Y-%m-%d %H:%M:%S"),
+            end_utc.strftime("%Y-%m-%d %H:%M:%S"),
+        ])
+
+    where_sql = " AND ".join(clauses)
+    return where_sql, params
+
+
+def get_articles(
+    category=None,
+    priority=None,
+    date_range="all",
+    search=None,
+    limit=None,
+    offset=0,
+):
+    """Fetch filtered articles from the database."""
+    where_sql, params = build_filter_query(
+        category=category,
+        priority=priority,
+        date_range=date_range,
+        search=search,
+    )
+
+    query = f"""
         SELECT
             id,
             title,
@@ -30,6 +102,7 @@ def get_articles(category=None, priority=None, date_range="all"):
             url,
             source,
             published_at,
+            collected_at,
             category,
             priority,
             location,
@@ -38,67 +111,117 @@ def get_articles(category=None, priority=None, date_range="all"):
             is_relevant,
             reason
         FROM articles
-        WHERE 1 = 1
+        WHERE {where_sql}
+        ORDER BY id DESC
     """
 
-    parameters = []
+    if limit is not None:
+        query += " LIMIT ? OFFSET ?"
+        params.extend([int(limit), int(offset)])
 
-    # Show relevant articles by default.
-    # If a category is selected, filter by that category.
-    if category:
-        query += " AND LOWER(TRIM(category)) = LOWER(TRIM(?))"
-        parameters.append(category)
-    else:
-        query += " AND is_relevant = 1"
-
-    if priority:
-        query += " AND UPPER(TRIM(priority)) = UPPER(TRIM(?))"
-        parameters.append(priority)
-
-    # Use publication date, falling back to collection date.
-    if date_range in ("today", "7days"):
-        now = datetime.now(IST)
-
-        if date_range == "today":
-            start = now.replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
-        else:
-            start = (now - timedelta(days=6)).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
-
-        # Store comparison boundaries in UTC because RSS dates
-        # in this database are generally stored in UTC.
-        start_utc = start.astimezone(ZoneInfo("UTC"))
-        end_utc = now.astimezone(ZoneInfo("UTC"))
-
-        date_expression = """
-            COALESCE(
-                NULLIF(published_at, ''),
-                NULLIF(collected_at, '')
-            )
-        """
-
-        query += f" AND {date_expression} >= ? AND {date_expression} <= ?"
-        parameters.extend([
-            start_utc.strftime("%Y-%m-%d %H:%M:%S"),
-            end_utc.strftime("%Y-%m-%d %H:%M:%S"),
-        ])
-
-    query += " ORDER BY id DESC"
-
+    conn = get_db_connection()
     try:
-        return conn.execute(query, parameters).fetchall()
+        return conn.execute(query, params).fetchall()
+    finally:
+        conn.close()
+
+
+def count_articles(category=None, priority=None, date_range="all", search=None):
+    """Get count of filtered articles."""
+    where_sql, params = build_filter_query(
+        category=category,
+        priority=priority,
+        date_range=date_range,
+        search=search,
+    )
+
+    query = f"SELECT COUNT(*) FROM articles WHERE {where_sql}"
+    conn = get_db_connection()
+    try:
+        return conn.execute(query, params).fetchone()[0]
+    finally:
+        conn.close()
+
+
+def get_community_articles(limit=10):
+    """Fetch genuine community, campus sustainability, civic and waste articles."""
+    conn = get_db_connection()
+    try:
+        query = """
+            SELECT
+                id,
+                title,
+                description,
+                url,
+                source,
+                published_at,
+                category,
+                priority,
+                location,
+                summary,
+                recommended_action
+            FROM articles
+            WHERE is_relevant = 1
+              AND (
+                  LOWER(category) IN (
+                      'campus sustainability',
+                      'community development',
+                      'civic announcement',
+                      'waste management'
+                  )
+                  OR LOWER(title) LIKE '%campus%'
+                  OR LOWER(title) LIKE '%community%'
+                  OR LOWER(title) LIKE '%campaign%'
+                  OR LOWER(title) LIKE '%drive%'
+                  OR LOWER(title) LIKE '%volunteer%'
+                  OR LOWER(title) LIKE '%event%'
+              )
+            ORDER BY id DESC
+            LIMIT ?
+        """
+        return conn.execute(query, (limit,)).fetchall()
+    finally:
+        conn.close()
+
+
+def get_air_quality_articles(limit=6):
+    """Fetch genuine air quality, pollution, and climate articles."""
+    conn = get_db_connection()
+    try:
+        query = """
+            SELECT
+                id,
+                title,
+                description,
+                url,
+                source,
+                published_at,
+                category,
+                priority,
+                location,
+                summary,
+                recommended_action
+            FROM articles
+            WHERE is_relevant = 1
+              AND (
+                  LOWER(category) = 'water & pollution'
+                  OR LOWER(title) LIKE '%air%'
+                  OR LOWER(title) LIKE '%pollution%'
+                  OR LOWER(title) LIKE '%smog%'
+                  OR LOWER(title) LIKE '%aqi%'
+                  OR LOWER(summary) LIKE '%air%'
+              )
+            ORDER BY id DESC
+            LIMIT ?
+        """
+        return conn.execute(query, (limit,)).fetchall()
     finally:
         conn.close()
 
 
 def get_dashboard_stats():
     """Get counts of relevant articles by priority."""
-
-    conn = sqlite3.connect(DATABASE_PATH)
-
+    conn = get_db_connection()
     try:
         total = conn.execute("""
             SELECT COUNT(*)
@@ -136,36 +259,163 @@ def get_dashboard_stats():
 
 @app.route("/")
 def dashboard():
+    """Home Dashboard: stats, highlights, carousels, and recent alerts."""
     category = request.args.get("category", "").strip()
     priority = request.args.get("priority", "").strip()
     date_range = request.args.get("date_range", "all").strip().lower()
+    search = request.args.get("search", "").strip()
 
     if date_range not in ("today", "7days", "all"):
         date_range = "all"
 
+    # Fetch filtered articles for main alerts section
     articles = get_articles(
         category=category or None,
         priority=priority or None,
         date_range=date_range,
+        search=search or None,
     )
 
     stats = get_dashboard_stats()
+    community_articles = get_community_articles(limit=10)
+    air_quality_articles = get_air_quality_articles(limit=6)
 
     return render_template(
         "index.html",
         articles=articles,
+        community_articles=community_articles,
+        air_quality_articles=air_quality_articles,
         selected_category=category,
         selected_priority=priority,
         selected_date_range=date_range,
+        selected_search=search,
         categories=config.CATEGORIES,
         priorities=config.PRIORITIES,
         stats=stats,
     )
 
 
+@app.route("/articles")
+def articles_page():
+    """Dedicated Articles page with search, filters, and pagination."""
+    category = request.args.get("category", "").strip()
+    priority = request.args.get("priority", "").strip()
+    date_range = request.args.get("date_range", "all").strip().lower()
+    search = request.args.get("search", "").strip()
+
+    if date_range not in ("today", "7days", "all"):
+        date_range = "all"
+
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except ValueError:
+        page = 1
+
+    per_page = 12
+    total_count = count_articles(
+        category=category or None,
+        priority=priority or None,
+        date_range=date_range,
+        search=search or None,
+    )
+
+    total_pages = max(1, math.ceil(total_count / per_page))
+    if page > total_pages:
+        page = total_pages
+
+    offset = (page - 1) * per_page
+    articles = get_articles(
+        category=category or None,
+        priority=priority or None,
+        date_range=date_range,
+        search=search or None,
+        limit=per_page,
+        offset=offset,
+    )
+
+    # Calculate pagination range (e.g. 1 2 3 4 5)
+    page_numbers = list(range(max(1, page - 2), min(total_pages + 1, page + 3)))
+
+    return render_template(
+        "articles.html",
+        articles=articles,
+        selected_category=category,
+        selected_priority=priority,
+        selected_date_range=date_range,
+        selected_search=search,
+        categories=config.CATEGORIES,
+        priorities=config.PRIORITIES,
+        page=page,
+        per_page=per_page,
+        total_count=total_count,
+        total_pages=total_pages,
+        page_numbers=page_numbers,
+    )
+
+
+@app.route("/article/<int:article_id>")
+def article_detail(article_id):
+    """Article details view."""
+    conn = get_db_connection()
+    try:
+        article = conn.execute(
+            """
+            SELECT * FROM articles WHERE id = ?
+            """,
+            (article_id,),
+        ).fetchone()
+        if not article:
+            abort(404)
+        return render_template("article_detail.html", article=article)
+    finally:
+        conn.close()
+
+
+@app.route("/about")
+def about_page():
+    """About Page: Project purpose, pipeline, RSS feeds, tech stack, and limitations."""
+    feeds = RSS_SOURCES
+    stats = get_dashboard_stats()
+    return render_template(
+        "about.html",
+        feeds=feeds,
+        stats=stats,
+    )
+
+
+@app.route("/health")
+def healthcheck():
+    """Cloud health check endpoint."""
+    return {
+        "status": "healthy",
+        "service": "EcoPulse",
+        "timestamp": datetime.now(ZoneInfo("UTC")).isoformat(),
+    }
+
+
+@app.route("/api/pipeline/run", methods=["POST"])
+def trigger_pipeline():
+    """Secure webhook to trigger pipeline run from scheduled runner."""
+    auth_header = request.headers.get("Authorization", "")
+    secret = auth_header.replace("Bearer ", "").strip()
+    expected_secret = os.getenv("PIPELINE_SECRET", config.SECRET_KEY)
+
+    if not secret or secret != expected_secret:
+        return {"status": "error", "message": "Unauthorized"}, 401
+
+    try:
+        from pipeline import run_pipeline
+        stats = run_pipeline()
+        return {"status": "success", "results": stats}, 200
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
+
+
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", config.PORT))
+    host = os.environ.get("HOST", "127.0.0.1")
     app.run(
-        host="127.0.0.1",
-        port=config.PORT,
+        host=host,
+        port=port,
         debug=config.DEBUG,
     )

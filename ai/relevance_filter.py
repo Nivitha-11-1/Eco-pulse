@@ -178,10 +178,37 @@ def quick_relevance_check(title, description=""):
 
 
 # ---------------------------------------------------------
-# 2. GEMINI AI PROVIDER
+# 2. BASE AI PROVIDER INTERFACE
 # ---------------------------------------------------------
 
-class GeminiProvider:
+class BaseAIProvider:
+    """Base class for EcoPulse AI relevance providers.
+
+    Subclasses can implement either check(title, description) or
+    classify_relevance(title, description). BaseAIProvider ensures that
+    calling either method works seamlessly across both interfaces.
+    """
+
+    def check(self, title: str, description: str = "") -> dict:
+        """Evaluate article relevance. Delegates to classify_relevance if implemented."""
+        subclass_classify = getattr(self.__class__, "classify_relevance", None)
+        if subclass_classify is not None and subclass_classify is not BaseAIProvider.classify_relevance:
+            return self.classify_relevance(title=title, description=description)
+        raise NotImplementedError("Provider must implement check() or classify_relevance()")
+
+    def classify_relevance(self, title: str, description: str = "") -> dict:
+        """Evaluate article relevance (alias for check)."""
+        subclass_check = getattr(self.__class__, "check", None)
+        if subclass_check is not None and subclass_check is not BaseAIProvider.check:
+            return self.check(title=title, description=description)
+        raise NotImplementedError("Provider must implement check() or classify_relevance()")
+
+
+# ---------------------------------------------------------
+# 3. GEMINI AI PROVIDER
+# ---------------------------------------------------------
+
+class GeminiProvider(BaseAIProvider):
     """Uses Google's Gemini API to check article relevance."""
 
     def __init__(self, api_key=None, model=None):
@@ -316,10 +343,10 @@ Return only the JSON object.
 
 
 # ---------------------------------------------------------
-# 3. OPENAI PROVIDER
+# 4. OPENAI PROVIDER
 # ---------------------------------------------------------
 
-class OpenAIProvider:
+class OpenAIProvider(BaseAIProvider):
     """Uses the OpenAI API to check article relevance."""
 
     def __init__(self, api_key=None, model=None):
@@ -403,10 +430,10 @@ class OpenAIProvider:
 
 
 # ---------------------------------------------------------
-# 4. MOCK PROVIDER FOR TESTS
+# 5. MOCK PROVIDER FOR TESTS
 # ---------------------------------------------------------
 
-class MockHeuristicProvider:
+class MockHeuristicProvider(BaseAIProvider):
     """Keyword-based provider for testing without API calls."""
 
     def __init__(self):
@@ -482,7 +509,7 @@ class MockHeuristicProvider:
 
 
 # ---------------------------------------------------------
-# 5. PROVIDER SELECTION
+# 6. PROVIDER SELECTION
 # ---------------------------------------------------------
 
 def get_ai_provider(provider=None):
@@ -513,16 +540,44 @@ def get_ai_provider(provider=None):
 
 
 # ---------------------------------------------------------
-# 6. PUBLIC RELEVANCE CHECK FUNCTIONS
+# 7. PUBLIC RELEVANCE CHECK FUNCTIONS
 # ---------------------------------------------------------
 
 def check_relevance(title, description="", provider=None):
-    """Check relevance using the selected AI or mock provider."""
+    """Check relevance using the selected AI or mock provider.
+    
+    Compatible with providers exposing either check(title, description)
+    or classify_relevance(title, description).
+    """
 
     selected_provider = get_ai_provider(provider)
 
     try:
-        result = selected_provider.check(
+        call_fn = None
+        # Handle mocks/MagicMocks where attributes are dynamically generated
+        if hasattr(selected_provider, "_mock_return_value") or hasattr(selected_provider, "_mock_side_effect"):
+            if "classify_relevance" in getattr(selected_provider, "__dict__", {}):
+                call_fn = selected_provider.classify_relevance
+            elif "check" in getattr(selected_provider, "__dict__", {}):
+                call_fn = selected_provider.check
+            elif hasattr(selected_provider, "classify_relevance"):
+                call_fn = selected_provider.classify_relevance
+            else:
+                call_fn = selected_provider.check
+        elif hasattr(selected_provider, "classify_relevance") and not hasattr(selected_provider, "check"):
+            call_fn = selected_provider.classify_relevance
+        elif hasattr(selected_provider, "check") and not hasattr(selected_provider, "classify_relevance"):
+            call_fn = selected_provider.check
+        elif hasattr(selected_provider, "classify_relevance") and hasattr(selected_provider, "check"):
+            subclass_classify = getattr(selected_provider.__class__, "classify_relevance", None)
+            if subclass_classify is not None and subclass_classify is not BaseAIProvider.classify_relevance:
+                call_fn = selected_provider.classify_relevance
+            else:
+                call_fn = selected_provider.check
+        else:
+            raise TypeError("Provider has neither check() nor classify_relevance() method.")
+
+        result = call_fn(
             title=title,
             description=description,
         )
@@ -542,6 +597,15 @@ def check_relevance(title, description="", provider=None):
             "reason": f"Relevance check failed: {exc}",
             "keywords": [],
         }
+
+
+def classify_relevance(title, description="", provider=None):
+    """Alias for check_relevance to support both function naming styles."""
+    return check_relevance(
+        title=title,
+        description=description,
+        provider=provider,
+    )
 
 
 def is_relevant(title, description="", provider=None):
