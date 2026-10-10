@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Server Temporarily Busy — EcoPulse{% endblock %}
+
+{% block content %}
+<div class="empty-state-panel" style="max-width: 650px; margin: 60px auto;">
+    <div class="empty-icon-leaf">🌱</div>
+    <h2>EcoPulse is Updating</h2>
+    <p>The environmental aggregator is initializing its feed collection database. Please refresh this page in a few moments.</p>
+    <div class="empty-actions">
+        <a href="/" class="btn-filter" style="text-decoration: none;">Refresh Dashboard</a>
+    </div>
+</div>
+{% endblock %}

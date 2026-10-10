@@ -96,174 +96,199 @@ def get_articles(
     offset=0,
 ):
     """Fetch filtered articles from the database."""
-    where_sql, params = build_filter_query(
-        category=category,
-        priority=priority,
-        date_range=date_range,
-        search=search,
-    )
-
-    query = f"""
-        SELECT
-            id,
-            title,
-            description,
-            url,
-            source,
-            published_at,
-            collected_at,
-            category,
-            priority,
-            location,
-            summary,
-            recommended_action,
-            is_relevant,
-            reason
-        FROM articles
-        WHERE {where_sql}
-        ORDER BY id DESC
-    """
-
-    if limit is not None:
-        query += " LIMIT ? OFFSET ?"
-        params.extend([int(limit), int(offset)])
-
-    conn = get_db_connection()
     try:
-        return conn.execute(query, params).fetchall()
-    finally:
-        conn.close()
+        where_sql, params = build_filter_query(
+            category=category,
+            priority=priority,
+            date_range=date_range,
+            search=search,
+        )
+
+        query = f"""
+            SELECT
+                id,
+                title,
+                description,
+                url,
+                source,
+                published_at,
+                collected_at,
+                category,
+                priority,
+                location,
+                summary,
+                recommended_action,
+                is_relevant,
+                reason
+            FROM articles
+            WHERE {where_sql}
+            ORDER BY id DESC
+        """
+
+        if limit is not None:
+            query += " LIMIT ? OFFSET ?"
+            params.extend([int(limit), int(offset)])
+
+        conn = get_db_connection()
+        try:
+            return conn.execute(query, params).fetchall()
+        finally:
+            conn.close()
+    except Exception as e:
+        app.logger.error("Error in get_articles: %s", e)
+        return []
 
 
 def count_articles(category=None, priority=None, date_range="all", search=None):
     """Get count of filtered articles."""
-    where_sql, params = build_filter_query(
-        category=category,
-        priority=priority,
-        date_range=date_range,
-        search=search,
-    )
-
-    query = f"SELECT COUNT(*) FROM articles WHERE {where_sql}"
-    conn = get_db_connection()
     try:
-        return conn.execute(query, params).fetchone()[0]
-    finally:
-        conn.close()
+        where_sql, params = build_filter_query(
+            category=category,
+            priority=priority,
+            date_range=date_range,
+            search=search,
+        )
+
+        query = f"SELECT COUNT(*) FROM articles WHERE {where_sql}"
+        conn = get_db_connection()
+        try:
+            return conn.execute(query, params).fetchone()[0]
+        finally:
+            conn.close()
+    except Exception as e:
+        app.logger.error("Error in count_articles: %s", e)
+        return 0
 
 
 def get_community_articles(limit=10):
     """Fetch genuine community, campus sustainability, civic and waste articles."""
-    conn = get_db_connection()
     try:
-        query = """
-            SELECT
-                id,
-                title,
-                description,
-                url,
-                source,
-                published_at,
-                category,
-                priority,
-                location,
-                summary,
-                recommended_action
-            FROM articles
-            WHERE is_relevant = 1
-              AND (
-                  LOWER(category) IN (
-                      'campus sustainability',
-                      'community development',
-                      'civic announcement',
-                      'waste management'
+        conn = get_db_connection()
+        try:
+            query = """
+                SELECT
+                    id,
+                    title,
+                    description,
+                    url,
+                    source,
+                    published_at,
+                    category,
+                    priority,
+                    location,
+                    summary,
+                    recommended_action
+                FROM articles
+                WHERE is_relevant = 1
+                  AND (
+                      LOWER(category) IN (
+                          'campus sustainability',
+                          'community development',
+                          'civic announcement',
+                          'waste management'
+                      )
+                      OR LOWER(title) LIKE '%campus%'
+                      OR LOWER(title) LIKE '%community%'
+                      OR LOWER(title) LIKE '%campaign%'
+                      OR LOWER(title) LIKE '%drive%'
+                      OR LOWER(title) LIKE '%volunteer%'
+                      OR LOWER(title) LIKE '%event%'
                   )
-                  OR LOWER(title) LIKE '%campus%'
-                  OR LOWER(title) LIKE '%community%'
-                  OR LOWER(title) LIKE '%campaign%'
-                  OR LOWER(title) LIKE '%drive%'
-                  OR LOWER(title) LIKE '%volunteer%'
-                  OR LOWER(title) LIKE '%event%'
-              )
-            ORDER BY id DESC
-            LIMIT ?
-        """
-        return conn.execute(query, (limit,)).fetchall()
-    finally:
-        conn.close()
+                ORDER BY id DESC
+                LIMIT ?
+            """
+            return conn.execute(query, (limit,)).fetchall()
+        finally:
+            conn.close()
+    except Exception as e:
+        app.logger.error("Error in get_community_articles: %s", e)
+        return []
 
 
 def get_air_quality_articles(limit=6):
     """Fetch genuine air quality, pollution, and climate articles."""
-    conn = get_db_connection()
     try:
-        query = """
-            SELECT
-                id,
-                title,
-                description,
-                url,
-                source,
-                published_at,
-                category,
-                priority,
-                location,
-                summary,
-                recommended_action
-            FROM articles
-            WHERE is_relevant = 1
-              AND (
-                  LOWER(category) = 'water & pollution'
-                  OR LOWER(title) LIKE '%air%'
-                  OR LOWER(title) LIKE '%pollution%'
-                  OR LOWER(title) LIKE '%smog%'
-                  OR LOWER(title) LIKE '%aqi%'
-                  OR LOWER(summary) LIKE '%air%'
-              )
-            ORDER BY id DESC
-            LIMIT ?
-        """
-        return conn.execute(query, (limit,)).fetchall()
-    finally:
-        conn.close()
+        conn = get_db_connection()
+        try:
+            query = """
+                SELECT
+                    id,
+                    title,
+                    description,
+                    url,
+                    source,
+                    published_at,
+                    category,
+                    priority,
+                    location,
+                    summary,
+                    recommended_action
+                FROM articles
+                WHERE is_relevant = 1
+                  AND (
+                      LOWER(category) = 'water & pollution'
+                      OR LOWER(title) LIKE '%air%'
+                      OR LOWER(title) LIKE '%pollution%'
+                      OR LOWER(title) LIKE '%smog%'
+                      OR LOWER(title) LIKE '%aqi%'
+                      OR LOWER(summary) LIKE '%air%'
+                  )
+                ORDER BY id DESC
+                LIMIT ?
+            """
+            return conn.execute(query, (limit,)).fetchall()
+        finally:
+            conn.close()
+    except Exception as e:
+        app.logger.error("Error in get_air_quality_articles: %s", e)
+        return []
 
 
 def get_dashboard_stats():
     """Get counts of relevant articles by priority."""
-    conn = get_db_connection()
     try:
-        total = conn.execute("""
-            SELECT COUNT(*)
-            FROM articles
-            WHERE is_relevant = 1
-        """).fetchone()[0]
+        conn = get_db_connection()
+        try:
+            total = conn.execute("""
+                SELECT COUNT(*)
+                FROM articles
+                WHERE is_relevant = 1
+            """).fetchone()[0]
 
-        high = conn.execute("""
-            SELECT COUNT(*)
-            FROM articles
-            WHERE is_relevant = 1 AND UPPER(priority) = 'HIGH'
-        """).fetchone()[0]
+            high = conn.execute("""
+                SELECT COUNT(*)
+                FROM articles
+                WHERE is_relevant = 1 AND UPPER(priority) = 'HIGH'
+            """).fetchone()[0]
 
-        medium = conn.execute("""
-            SELECT COUNT(*)
-            FROM articles
-            WHERE is_relevant = 1 AND UPPER(priority) = 'MEDIUM'
-        """).fetchone()[0]
+            medium = conn.execute("""
+                SELECT COUNT(*)
+                FROM articles
+                WHERE is_relevant = 1 AND UPPER(priority) = 'MEDIUM'
+            """).fetchone()[0]
 
-        low = conn.execute("""
-            SELECT COUNT(*)
-            FROM articles
-            WHERE is_relevant = 1 AND UPPER(priority) = 'LOW'
-        """).fetchone()[0]
+            low = conn.execute("""
+                SELECT COUNT(*)
+                FROM articles
+                WHERE is_relevant = 1 AND UPPER(priority) = 'LOW'
+            """).fetchone()[0]
 
+            return {
+                "total": total,
+                "high": high,
+                "medium": medium,
+                "low": low,
+            }
+        finally:
+            conn.close()
+    except Exception as e:
+        app.logger.error("Error in get_dashboard_stats: %s", e)
         return {
-            "total": total,
-            "high": high,
-            "medium": medium,
-            "low": low,
+            "total": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
         }
-    finally:
-        conn.close()
 
 
 @app.route("/")
@@ -418,6 +443,13 @@ def trigger_pipeline():
         return {"status": "success", "results": stats}, 200
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    import traceback
+    app.logger.error("Unhandled Server Error: %s\n%s", e, traceback.format_exc())
+    return render_template("500.html", error=str(e)), 500
 
 
 if __name__ == "__main__":
