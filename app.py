@@ -14,6 +14,7 @@ from flask import Flask, abort, render_template, request
 
 from collectors.source_config import RSS_SOURCES
 from config import config
+from database.database import initialize_database
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
@@ -21,9 +22,17 @@ app.config["SECRET_KEY"] = config.SECRET_KEY
 DATABASE_PATH = Path(config.DATABASE_PATH)
 IST = ZoneInfo("Asia/Kolkata")
 
+# Ensure database and articles table exist on app startup
+try:
+    initialize_database(DATABASE_PATH, auto_seed=True)
+except Exception as e:
+    app.logger.warning("Database init warning: %s", e)
+
 
 def get_db_connection():
     """Create a sqlite3 connection with Row factory."""
+    if not DATABASE_PATH.exists():
+        initialize_database(DATABASE_PATH, auto_seed=True)
     conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row
     return conn

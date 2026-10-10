@@ -58,11 +58,15 @@ def get_db_connection(db_path: Optional[Union[str, Path]] = None):
         conn.close()
 
 
-def initialize_database(db_path: Optional[Union[str, Path]] = None) -> Path:
+def initialize_database(
+    db_path: Optional[Union[str, Path]] = None,
+    auto_seed: bool = False,
+) -> Path:
     """Initialize SQLite database and create the 'articles' table if it doesn't exist.
 
     Args:
         db_path: Optional custom path to database file.
+        auto_seed: If True and database is empty, seed with seed_articles.json.
 
     Returns:
         Path to the initialized database file.
@@ -104,6 +108,49 @@ def initialize_database(db_path: Optional[Union[str, Path]] = None) -> Path:
         for index_sql in create_indexes_sql:
             conn.execute(index_sql)
         conn.commit()
+
+        # Auto-seed if requested and table is empty
+        if auto_seed:
+            try:
+                count = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
+                seed_file = target_path.parent / "seed_articles.json"
+                if not seed_file.exists():
+                    seed_file = _BASE_DIR / "data" / "seed_articles.json"
+                if count == 0 and seed_file.exists():
+                    with open(seed_file, "r", encoding="utf-8") as f:
+                        seed_data = json.load(f)
+                    for art in seed_data:
+                        conn.execute(
+                            """
+                            INSERT OR IGNORE INTO articles (
+                                id, title, description, url, source, published_at, collected_at,
+                                category, priority, location, summary, reason, keywords,
+                                recommended_action, is_relevant, created_at
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                art.get("id"),
+                                art.get("title", ""),
+                                art.get("description", ""),
+                                art.get("url", ""),
+                                art.get("source", ""),
+                                art.get("published_at"),
+                                art.get("collected_at"),
+                                art.get("category"),
+                                art.get("priority"),
+                                art.get("location"),
+                                art.get("summary"),
+                                art.get("reason"),
+                                _prepare_keywords(art.get("keywords")),
+                                art.get("recommended_action"),
+                                art.get("is_relevant", 0),
+                                art.get("created_at"),
+                            ),
+                        )
+                    conn.commit()
+                    logger.info("Auto-seeded %d articles into %s", len(seed_data), target_path)
+            except Exception as e:
+                logger.warning("Could not auto-seed database: %s", e)
 
     logger.info("Database initialized successfully at: %s", target_path)
     return target_path
