@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}EcoPulse — Community Eco Alerts &amp; Environmental Aggregator{% endblock %}
+{% block title %}EcoPulse — Community News &amp; Eco-Alert Aggregator{% endblock %}
 
 {% block content %}
 <!-- Section: Hero & Introduction -->
 <section class="intro-hero">
     <div class="intro-text">
         <div class="intro-badge">🌱 Live Environmental Intelligence</div>
-        <h1>Community Eco Alerts</h1>
+        <h2>Community Eco Alerts</h2>
         <div class="developer-credit">Developed by <strong>Nivitha R</strong></div>
         <p class="intro-description">
-            Real-time environmental monitoring prioritizing Chennai local alerts, Tamil Nadu state advisories, and India national civic intelligence alongside verified campus sustainability initiatives.
+            Real-time monitoring of Chennai &amp; Tamil Nadu regional eco-alerts, air quality indicators, severe weather warnings, civic disruptions, and green campus initiatives.
         </p>
     </div>
     <div class="intro-meta">
-        <span class="meta-pill">📡 Multiple Environmental Information Sources</span>
+        <span class="meta-pill">📡 7 RSS Feeds Monitored</span>
         <span class="meta-pill">🤖 AI Relevance Verified</span>
         <span class="meta-pill">⚡ Updated Daily at 7:00 AM IST</span>
     </div>
@@ -59,6 +59,41 @@
     </div>
 </section>
 
+<!-- Four Small Geographical Region Filter Boxes -->
+<div class="region-boxes-bar" aria-label="Geographical Region Quick Filters">
+    <div class="region-boxes-container">
+        <span class="region-boxes-label">Focus Region:</span>
+        <div class="region-boxes-grid">
+            <a href="/?region=india{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_date_range %}&date_range={{ selected_date_range }}{% endif %}{% if selected_search %}&search={{ selected_search }}{% endif %}"
+               class="region-box-item {% if selected_region == 'india' %}active{% endif %}">
+                <span class="region-flag">🇮🇳</span>
+                <span class="region-name">India</span>
+            </a>
+            <a href="/?region=tamil_nadu{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_date_range %}&date_range={{ selected_date_range }}{% endif %}{% if selected_search %}&search={{ selected_search }}{% endif %}"
+               class="region-box-item {% if selected_region == 'tamil_nadu' %}active{% endif %}">
+                <span class="region-flag">🏛️</span>
+                <span class="region-name">Tamil Nadu</span>
+            </a>
+            <a href="/?region=chennai{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_date_range %}&date_range={{ selected_date_range }}{% endif %}{% if selected_search %}&search={{ selected_search }}{% endif %}"
+               class="region-box-item {% if selected_region == 'chennai' %}active{% endif %}">
+                <span class="region-flag">📍</span>
+                <span class="region-name">Chennai</span>
+            </a>
+            <a href="/?region=global{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_date_range %}&date_range={{ selected_date_range }}{% endif %}{% if selected_search %}&search={{ selected_search }}{% endif %}"
+               class="region-box-item {% if selected_region == 'global' %}active{% endif %}">
+                <span class="region-flag">🌍</span>
+                <span class="region-name">Global</span>
+            </a>
+            {% if selected_region and selected_region != 'all' %}
+            <a href="/{% if selected_category or selected_priority or selected_date_range or selected_search %}?{% endif %}{% if selected_category %}category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_date_range %}&date_range={{ selected_date_range }}{% endif %}{% if selected_search %}&search={{ selected_search }}{% endif %}"
+               class="region-box-item region-box-reset" title="Show all articles">
+                <span class="region-name">✕ All Articles</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
 <!-- Section: Working Search & Filter Controls -->
 <section class="filter-panel" aria-label="Search and Filter Controls">
     <div class="filter-header">
@@ -70,6 +105,9 @@
     </div>
 
     <form method="GET" action="/" class="filter-form" id="filterForm">
+        {% if selected_region and selected_region != 'all' %}
+        <input type="hidden" name="region" value="{{ selected_region }}">
+        {% endif %}
         <div class="filter-controls-grid">
             <!-- Keyword Search -->
             <div class="form-group form-search">
@@ -194,7 +232,7 @@
         <div>
             <div class="section-kicker">🌬️ ATMOSPHERE &amp; POLLUTION MONITOR</div>
             <h2 id="airHeading" class="section-main-heading">Latest Air Quality &amp; Environmental News</h2>
-            <p class="section-subtext">Real-time alerts regarding air quality indices, emissions regulations, smog advisories, and weather impacts across India and Tamil Nadu.</p>
+            <p class="section-subtext">Real-time alerts regarding air quality indices, emissions regulations, smog advisories, and weather impacts.</p>
         </div>
         <a href="/articles?category=Water+%26+Pollution" class="section-view-all">View All Air Alerts →</a>
     </div>
@@ -254,8 +292,20 @@
     <div class="section-top-bar">
         <div>
             <div class="section-kicker">📋 COMPREHENSIVE STREAM</div>
-            <h2 id="alertsHeading" class="section-main-heading">Latest Eco Alerts</h2>
-            <p class="section-subtext">Priority alerts across India, Tamil Nadu, and Chennai ranked by urgency.</p>
+            <h2 id="alertsHeading" class="section-main-heading">
+                {% if selected_region == 'chennai' %}
+                    Chennai — Local Alerts
+                {% elif selected_region == 'tamil_nadu' %}
+                    Tamil Nadu — State Alerts
+                {% elif selected_region == 'india' %}
+                    India — National Alerts
+                {% elif selected_region == 'global' %}
+                    Global Alerts
+                {% else %}
+                    Latest Eco Alerts
+                {% endif %}
+            </h2>
+            <p class="section-subtext">All verified environmental and civic intelligence collected from monitored feeds.</p>
         </div>
         <div class="results-counter">
             <span class="count-badge">{{ articles|length }}</span> article(s) found
@@ -273,7 +323,7 @@
                         {{ article["priority"] }}
                     </span>
                 </div>
-                <span class="feed-location">📍 {{ article["location"] or "India" }}</span>
+                <span class="feed-location">📍 {{ article["location"] or "Tamil Nadu" }}</span>
             </div>
 
             <h3 class="feed-article-title">

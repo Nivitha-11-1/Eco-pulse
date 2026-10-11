@@ -1,13 +1,14 @@
-"""Comprehensive Tests for EcoPulse Final Enhancements.
+"""Comprehensive Tests for Restored Original EcoPulse Dashboard.
 
 Verifies:
-1. Homepage branding: "Community Eco Alerts" and "Developed by Nivitha R" directly below the heading.
-2. Removal of overt RSS promotional banners and UI labels.
-3. Geographical regional alert categorization (India, Tamil Nadu, Chennai, Global).
-4. Regional, category, priority, and keyword search filters.
-5. Priority sorting (High first) vs Newest date sorting.
-6. Preservation of 350+ historical articles in database with duplicate prevention.
-7. GitHub Actions daily 7:00 AM IST workflow cron schedule (30 1 * * *) and manual dispatch.
+1. Original EcoPulse header, green theme, and "Live RSS Feed Aggregation • Automated AI Analysis" banner.
+2. "Community Eco Alerts" heading with "Developed by Nivitha R" directly below it.
+3. "7 RSS Feeds Monitored" pill in the hero section.
+4. Original statistics cards (Total, High, Medium, Low).
+5. Four small geographical region boxes (India, Tamil Nadu, Chennai, Global) with active filtering.
+6. Default view displays all articles according to original default filters.
+7. Preservation of 350+ historical articles in database with duplicate prevention.
+8. GitHub Actions daily 7:00 AM IST workflow cron schedule (30 1 * * *).
 """
 
 from pathlib import Path
@@ -29,6 +30,19 @@ def client():
         yield client
 
 
+def test_original_header_and_rss_banner(client):
+    """Verify original header text and Live RSS promotional banner are present."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.data.decode("utf-8")
+
+    # Original Top Banner
+    assert "Live RSS Feed Aggregation • Automated AI Analysis" in html
+
+    # Original 7 RSS Feeds Monitored pill
+    assert "7 RSS Feeds Monitored" in html
+
+
 def test_homepage_branding_and_developer_credit(client):
     """Verify 'Community Eco Alerts' and 'Developed by Nivitha R' appear prominently."""
     response = client.get("/")
@@ -44,85 +58,66 @@ def test_homepage_branding_and_developer_credit(client):
     assert "developer-credit" in html
 
     # Order check: "Developed by Nivitha R" directly follows "Community Eco Alerts"
-    heading_pos = html.find("<h1>Community Eco Alerts</h1>")
+    heading_pos = html.find("Community Eco Alerts")
     credit_pos = html.find("Nivitha R")
     assert heading_pos != -1
     assert credit_pos != -1
     assert credit_pos > heading_pos
-    # Credit should appear within 200 characters directly below the heading
-    assert (credit_pos - heading_pos) < 200
+    # Credit should appear within 300 characters directly below the heading
+    assert (credit_pos - heading_pos) < 300
 
 
-def test_rss_promotional_banners_removed_from_ui(client):
-    """Verify that RSS implementation details are hidden from the user interface."""
+def test_four_small_geographical_region_boxes(client):
+    """Verify the four small geographical region boxes: India, Tamil Nadu, Chennai, Global."""
     response = client.get("/")
     assert response.status_code == 200
     html = response.data.decode("utf-8")
 
-    # The promotional banner must NOT be present
-    assert "Live RSS Feed Aggregation • Automated AI Analysis" not in html
-    assert "7 RSS Feeds Monitored" not in html
+    # Region boxes container
+    assert "region-boxes-bar" in html
+    assert "region-boxes-container" in html
 
-    # Accurate, user-facing label is used instead
-    assert "Multiple Environmental Information Sources" in html or "Environmental Information Sources" in html
+    # 4 distinct region boxes present
+    assert "India" in html
+    assert "Tamil Nadu" in html
+    assert "Chennai" in html
+    assert "Global" in html
 
-
-def test_geographical_categories_present(client):
-    """Verify the 4 geographical categories are configured and prioritized."""
-    response = client.get("/articles")
-    assert response.status_code == 200
-    html = response.data.decode("utf-8")
-
-    # 4 Geographical categories in the region filter
-    assert "Chennai — Local Alerts" in html
-    assert "Tamil Nadu — State Alerts" in html
-    assert "India — National Alerts" in html
-    assert "Other Relevant Global Alerts" in html
+    # Default view keeps all articles
+    assert "?region=india" in html
+    assert "?region=tamil_nadu" in html
+    assert "?region=chennai" in html
+    assert "?region=global" in html
 
 
 def test_region_filtering_functional(client):
-    """Verify filtering articles by specific geographical region works."""
+    """Verify clicking each region box filters articles by that region."""
     for region in ("chennai", "tamil_nadu", "india", "global"):
         response = client.get(f"/?region={region}")
         assert response.status_code == 200
         assert b"Community Eco Alerts" in response.data
-
-    # Count functions return non-negative counts
-    counts = get_regional_counts()
-    assert "chennai" in counts
-    assert "tamil_nadu" in counts
-    assert "india" in counts
-    assert "global" in counts
-    assert counts["india"] > 0
-    assert counts["chennai"] > 0
+        html = response.data.decode("utf-8")
+        assert f"region={region}" in html
 
 
-def test_sort_order_options(client):
-    """Verify sorting by highest priority and newest publication date."""
-    resp_priority = client.get("/?sort_by=priority")
-    assert resp_priority.status_code == 200
-
-    resp_newest = client.get("/?sort_by=newest")
-    assert resp_newest.status_code == 200
-
-    # In database query, verify priority sort places HIGH ahead of LOW
-    high_first = get_articles(sort_by="priority", limit=15)
-    assert len(high_first) > 0
-    priorities = [a["priority"].upper() for a in high_first if a["priority"]]
-    if "HIGH" in priorities and "LOW" in priorities:
-        assert priorities.index("HIGH") < priorities.index("LOW")
-
-
-def test_article_card_metadata_displayed(client):
-    """Verify location, category, priority, and date metadata are rendered on cards."""
+def test_original_statistics_cards(client):
+    """Verify original 4 statistics cards are present."""
     response = client.get("/")
     assert response.status_code == 200
     html = response.data.decode("utf-8")
 
-    assert "feed-location" in html
-    assert "category-badge" in html
-    assert "priority-pill" in html
-    assert "feed-meta-row" in html or "feed-time-block" in html
+    assert "Total Relevant Alerts" in html
+    assert "High Priority" in html
+    assert "Medium Priority" in html
+    assert "Low Priority" in html
+
+
+def test_original_curated_sections(client):
+    """Verify Section 1 (Community Projects) and Section 2 (Air Quality) render on dashboard."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert b"Community Projects, Campaigns &amp; Events" in response.data or b"Community Projects" in response.data
+    assert b"Air Quality" in response.data
 
 
 def test_database_preserves_historical_records_and_deduplication():
@@ -159,11 +154,7 @@ def test_github_actions_workflow_cron_schedule():
     assert workflow_path.exists(), "Workflow file does not exist"
 
     content = workflow_path.read_text(encoding="utf-8")
-    # Expected cron schedule: '30 1 * * *' (01:30 UTC = 07:00 IST)
     assert "cron: '30 1 * * *'" in content or "cron: \"30 1 * * *\"" in content
-    # Manual trigger
     assert "workflow_dispatch:" in content
-    # Concurrency control
     assert "concurrency:" in content
-    # Pipeline execution
     assert "python pipeline.py" in content

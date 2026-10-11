@@ -1973,3 +1973,74 @@ img {
         font-size: 1.6rem;
     }
 }
+
+/* Small Geographical Region Quick Filter Boxes */
+.region-boxes-bar {
+    margin-bottom: 22px;
+}
+
+.region-boxes-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: #ffffff;
+    padding: 10px 16px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.region-boxes-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--forest-800);
+}
+
+.region-boxes-grid {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.region-box-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--surface-alt);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+
+.region-box-item:hover {
+    background: var(--forest-wash);
+    border-color: var(--forest-300);
+    color: var(--forest-800);
+}
+
+.region-box-item.active {
+    background: var(--forest-800);
+    border-color: var(--forest-800);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.region-box-reset {
+    background: #fdf2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+    font-size: 0.775rem;
+    padding: 5px 10px;
+}
+
+.region-box-reset:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+}
