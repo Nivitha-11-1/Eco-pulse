@@ -172,6 +172,25 @@ def quick_relevance_check(title, description=""):
         "road flooded", "roads flooded",
         "school closed", "schools closed", "power outage",
         "emergency notice", "public warning",
+
+        # India, Tamil Nadu & Chennai specific environmental & civic terms
+        "ngt", "national green tribunal", "cpcb", "tnpcb", "pollution control board",
+        "imd", "meteorological department", "weather warning", "red alert", "orange alert", "yellow alert",
+        "ndma", "tnsdma", "disaster management",
+        "chennai corporation", "greater chennai corporation", "gcc", "wrd",
+        "water resources department", "pwd", "panchayat", "municipal corporation",
+        "monsoon", "thunderstorm", "depression", "low pressure", "inundation",
+        "sinkhole", "road cave", "road caves",
+        "desilting", "canal", "stormwater drain", "storm water drain", "drain work",
+        "water tank", "water contamination", "tanker water", "drinking water",
+        "chembarambakkam", "poondi", "veeranam", "red hills reservoir",
+        "cooum", "adyar river", "buckingham canal", "kosasthalaiyar",
+        "c&d waste", "biomining", "perungudi", "kodungaiyur", "dumpyard", "landfill",
+        "air quality index", "aqi", "smog", "toxic air", "pm2.5", "pm10",
+        "mtc bus", "chennai metro", "cmrl",
+        "green campus", "tree plantation", "sapling", "olive ridley", "mangrove",
+        "wetland", "marshland", "pallikaranai", "reserve forest", "western ghats",
+        "dengue", "vector-borne", "heat action plan", "heat advisory",
     ]
 
     return any(keyword in text for keyword in keywords)
@@ -456,6 +475,10 @@ class MockHeuristicProvider(BaseAIProvider):
             "community cleanup", "public park",
             "drainage improvement", "civic infrastructure",
             "street lighting", "waste collection",
+            "ngt", "national green tribunal", "cpcb", "tnpcb",
+            "imd", "chennai corporation", "gcc", "desilting",
+            "canal", "stormwater", "drain work", "c&d waste",
+            "aqi", "smog", "biomining", "waterlogging",
         ]
 
         self.irrelevant_keywords = [

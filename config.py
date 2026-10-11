@@ -29,6 +29,16 @@ class Config:
 
     # Database Configuration
     DATABASE_PATH = BASE_DIR / os.getenv("DATABASE_PATH", "data/news.db")
+    DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+    # Geographical Alert Categories
+    REGIONS = [
+        {"id": "all", "label": "All Regions"},
+        {"id": "chennai", "label": "Chennai — Local Alerts"},
+        {"id": "tamil_nadu", "label": "Tamil Nadu — State Alerts"},
+        {"id": "india", "label": "India — National Alerts"},
+        {"id": "global", "label": "Other Relevant Global Alerts"},
+    ]
 
     # Demo Mode Setting
     # When true, uses mock/sample articles when live external feeds are unavailable

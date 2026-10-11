@@ -110,9 +110,10 @@ def local_classify(title: str, description: str) -> Dict[str, Any]:
             priority = "MEDIUM"
 
     elif has(
-        r"\b(cyclone|flood warning|heatwave|heat wave|"
-        r"severe weather|environmental emergency|"
-        r"toxic leak|chemical spill|wildfire)\b"
+        r"\b(cyclone|flood warning|heatwave|heat wave|red alert|"
+        r"orange alert|severe weather|environmental emergency|"
+        r"inundation|toxic leak|chemical spill|wildfire|"
+        r"building collapse|sinkhole|road cave)\b"
     ):
         category = "Environmental Alert"
         priority = "HIGH"
@@ -120,7 +121,7 @@ def local_classify(title: str, description: str) -> Dict[str, Any]:
     elif has(
         r"\b(climate change|global warming|greenhouse gas|"
         r"carbon emissions|net[- ]zero|extreme weather|"
-        r"climate crisis|climate goals)\b"
+        r"climate crisis|climate goals|monsoon forecast|weather forecast)\b"
     ):
         category = "Climate & Weather"
 
@@ -133,70 +134,117 @@ def local_classify(title: str, description: str) -> Dict[str, Any]:
         category = "Energy"
 
     elif has(
-        r"\b(recycling|recyclable|recycle|waste management|"
-        r"waste disposal|garbage collection|landfill|"
-        r"plastic waste|e-waste|sewage treatment|"
-        r"illegal waste|waste segregation)\b"
+        r"\b(c&d waste|construction and demolition waste|biomining|"
+        r"perungudi|kodungaiyur|dumpyard|recycling|recyclable|recycle|"
+        r"waste management|waste disposal|garbage collection|landfill|"
+        r"plastic waste|e-waste|sewage treatment|illegal waste|"
+        r"waste segregation|solid waste)\b"
     ):
         category = "Waste Management"
 
     elif has(
-        r"\b(water pollution|air pollution|water contamination|"
-        r"water conservation|water shortage|water supply|"
-        r"groundwater|river pollution|contaminated water|"
-        r"sewage pollution|piped water)\b"
+        r"\b(water pollution|air pollution|water contamination|water tank|"
+        r"drinking water|water shortage|water supply|reservoir|dam|"
+        r"groundwater|river pollution|contaminated water|sewage pollution|"
+        r"piped water|canal desilting|desilting|stormwater drain|storm water drain|"
+        r"chembarambakkam|poondi|veeranam|cooum|buckingham canal)\b"
     ):
         category = "Water & Pollution"
+        if has(r"\b(contamination|faeces|toxic|poison|severe shortage|crisis)\b"):
+            priority = "HIGH"
 
     elif has(
-        r"\b(sustainable development goals|SDGs|"
-        r"community development|community-led|"
-        r"sustainable tourism|responsible tourism|"
-        r"community project|local development|"
-        r"environmental sustainability|biodiversity conservation|"
-        r"habitat restoration|wildlife conservation|"
-        r"tree planting|forest conservation)\b"
+        r"\b(sustainable development goals|SDGs|community development|"
+        r"community-led|sustainable tourism|responsible tourism|"
+        r"community project|local development|environmental sustainability|"
+        r"biodiversity conservation|habitat restoration|wildlife conservation|"
+        r"tree planting|forest conservation|cleanliness drive|clean-up drive)\b"
     ):
         category = "Community Development"
 
     elif has(
-        r"\b(public notice|civic announcement|"
-        r"municipal announcement|civic services|"
-        r"government notice|public consultation)\b"
+        r"\b(ngt|national green tribunal|chennai corporation|"
+        r"greater chennai corporation|gcc|drain work|drainage work|"
+        r"public notice|civic announcement|municipal announcement|"
+        r"civic services|government notice|public consultation|"
+        r"ward committee|corporation directs|civic body)\b"
     ):
         category = "Civic Announcement"
 
     elif has(
-        r"\b(fatal accident|serious accident|"
-        r"public safety alert|building collapse|"
-        r"emergency evacuation)\b"
+        r"\b(fatal accident|serious accident|public safety alert|"
+        r"emergency evacuation|dengue outbreak|health advisory)\b"
     ):
         category = "Public Safety"
         priority = "HIGH"
 
+    # Refine priorities based on urgency keywords
     if category in {
         "Environmental Alert",
         "Climate & Weather",
         "Water & Pollution",
-    } and has(r"\b(warning|emergency|severe|critical|dangerous)\b"):
+        "Public Safety",
+    } and has(r"\b(warning|emergency|severe|critical|dangerous|red alert|evacuat\w*|hazard)\b"):
         priority = "HIGH"
-
     elif category != "Other" and priority != "HIGH":
         priority = "MEDIUM"
 
-    # Extract a location only when a known place is explicitly mentioned.
-    location = "Unknown"
-    known_places = [
-        "Chennai", "Coimbatore", "Madurai", "Tiruchirappalli",
-        "Salem", "Tirunelveli", "Thiruvallur", "Tamil Nadu",
-        "Bengaluru", "Mumbai", "Delhi", "Hyderabad", "Kolkata",
-        "Visakhapatnam", "India",
+    # Extract a location with Indian and Tamil Nadu granularity
+    location = "India"
+    tn_localities = [
+        ("Madhavaram", "Chennai, Tamil Nadu"),
+        ("Tondiarpet", "Chennai, Tamil Nadu"),
+        ("Adyar", "Chennai, Tamil Nadu"),
+        ("Velachery", "Chennai, Tamil Nadu"),
+        ("Tambaram", "Chennai, Tamil Nadu"),
+        ("Guindy", "Chennai, Tamil Nadu"),
+        ("Perungudi", "Chennai, Tamil Nadu"),
+        ("Kodungaiyur", "Chennai, Tamil Nadu"),
+        ("Ennore", "Chennai, Tamil Nadu"),
+        ("Chennai", "Chennai, Tamil Nadu"),
+        ("Coimbatore", "Coimbatore, Tamil Nadu"),
+        ("Madurai", "Madurai, Tamil Nadu"),
+        ("Tiruchirappalli", "Tiruchirappalli, Tamil Nadu"),
+        ("Trichy", "Tiruchirappalli, Tamil Nadu"),
+        ("Salem", "Salem, Tamil Nadu"),
+        ("Tirunelveli", "Tirunelveli, Tamil Nadu"),
+        ("Thiruvallur", "Thiruvallur, Tamil Nadu"),
+        ("Kanchipuram", "Kanchipuram, Tamil Nadu"),
+        ("Dindigul", "Dindigul, Tamil Nadu"),
+        ("Erode", "Erode, Tamil Nadu"),
+        ("Vellore", "Vellore, Tamil Nadu"),
+        ("Tamil Nadu", "Tamil Nadu"),
+    ]
+    other_places = [
+        ("Delhi", "Delhi, India"),
+        ("Mumbai", "Mumbai, India"),
+        ("Bengaluru", "Bengaluru, India"),
+        ("Bangalore", "Bengaluru, India"),
+        ("Kolkata", "Kolkata, India"),
+        ("Hyderabad", "Hyderabad, India"),
+        ("Kerala", "Kerala, India"),
+        ("India", "India"),
     ]
 
-    for place in known_places:
-        if re.search(r"\b" + re.escape(place) + r"\b", text, re.I):
-            location = place
+    matched_loc = False
+    for loc_keyword, loc_display in tn_localities:
+        if re.search(r"\b" + re.escape(loc_keyword) + r"\b", text, re.I):
+            location = loc_display
+            matched_loc = True
             break
+
+    if not matched_loc:
+        for loc_keyword, loc_display in other_places:
+            if re.search(r"\b" + re.escape(loc_keyword) + r"\b", text, re.I):
+                location = loc_display
+                matched_loc = True
+                break
+
+    if not matched_loc:
+        if has(r"\b(bbc|uk|united states|un news|europe|global|world|international)\b"):
+            location = "Global"
+        else:
+            location = "India"
 
     return {
         "category": category,

@@ -70,6 +70,34 @@ RSS_SOURCES = [
     },
 
     # --------------------------------------------------
+    # ADDITIONAL INDIA & CHENNAI CIVIC / ECO SOURCES
+    # --------------------------------------------------
+
+    {
+        "name": "Times of India - Chennai",
+        "url": "https://timesofindia.indiatimes.com/rssfeeds/2950623.cms",
+        "location": "Chennai",
+        "type": "local",
+        "enabled": True,
+    },
+
+    {
+        "name": "Times of India - Environment",
+        "url": "https://timesofindia.indiatimes.com/rssfeeds/2647163.cms",
+        "location": "India",
+        "type": "environment",
+        "enabled": True,
+    },
+
+    {
+        "name": "Indian Express - Chennai",
+        "url": "https://indianexpress.com/section/cities/chennai/feed/",
+        "location": "Chennai",
+        "type": "local",
+        "enabled": True,
+    },
+
+    # --------------------------------------------------
     # CAMPUS SUSTAINABILITY
     # --------------------------------------------------
 

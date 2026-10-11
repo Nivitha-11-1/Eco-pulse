@@ -38,7 +38,64 @@ def get_db_connection():
     return conn
 
 
-def build_filter_query(category=None, priority=None, date_range="all", search=None):
+def get_region_clauses(region: str) -> tuple[str, list]:
+    """Return SQL clause and parameters for geographical categorization."""
+    if not region or region.lower() == "all":
+        return "", []
+
+    r = region.strip().lower()
+    if r == "chennai":
+        clause = (
+            "(LOWER(location) LIKE ? OR LOWER(title) LIKE ? OR LOWER(source) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ?)"
+        )
+        return clause, [
+            "%chennai%", "%chennai%", "%chennai%", "%madhavaram%", "%tondiarpet%"
+        ]
+    elif r == "tamil_nadu":
+        clause = (
+            "(LOWER(location) LIKE ? OR LOWER(title) LIKE ? OR LOWER(source) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ?)"
+        )
+        return clause, [
+            "%tamil nadu%", "%tamil nadu%", "%tamil nadu%",
+            "%chennai%", "%coimbatore%", "%madurai%",
+            "%salem%", "%tiruchirappalli%", "%tirunelveli%",
+            "%dindigul%", "%thiruvallur%",
+        ]
+    elif r == "india":
+        clause = (
+            "(LOWER(location) LIKE ? OR LOWER(title) LIKE ? OR LOWER(source) LIKE ? "
+            "OR LOWER(source) LIKE ? OR LOWER(source) LIKE ? OR LOWER(source) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ?)"
+        )
+        return clause, [
+            "%india%", "%india%", "%the hindu%",
+            "%times of india%", "%et infra%", "%indian express%",
+            "%delhi%", "%mumbai%", "%bengaluru%",
+            "%chennai%", "%tamil nadu%",
+        ]
+    elif r == "global":
+        clause = (
+            "(LOWER(location) = ? OR LOWER(source) LIKE ? OR LOWER(source) LIKE ? "
+            "OR LOWER(source) LIKE ? OR LOWER(location) LIKE ? OR LOWER(location) LIKE ?)"
+        )
+        return clause, [
+            "global", "%bbc%", "%un news%", "%cornell%", "%uk%", "%wales%"
+        ]
+    return "", []
+
+
+def build_filter_query(
+    category=None,
+    priority=None,
+    date_range="all",
+    search=None,
+    region=None,
+):
     """Construct SQL WHERE clause and parameters for article filtering."""
     clauses = ["1 = 1"]
     params = []
@@ -52,6 +109,12 @@ def build_filter_query(category=None, priority=None, date_range="all", search=No
     if priority:
         clauses.append("UPPER(TRIM(priority)) = UPPER(TRIM(?))")
         params.append(priority)
+
+    if region and region.lower() != "all":
+        reg_sql, reg_params = get_region_clauses(region)
+        if reg_sql:
+            clauses.append(reg_sql)
+            params.extend(reg_params)
 
     if search:
         search_pattern = f"%{search.strip().lower()}%"
@@ -92,17 +155,37 @@ def get_articles(
     priority=None,
     date_range="all",
     search=None,
+    region=None,
+    sort_by="priority",
     limit=None,
     offset=0,
 ):
-    """Fetch filtered articles from the database."""
+    """Fetch filtered articles from the database with regional & priority ordering."""
     try:
         where_sql, params = build_filter_query(
             category=category,
             priority=priority,
             date_range=date_range,
             search=search,
+            region=region,
         )
+
+        if sort_by == "newest":
+            order_clause = (
+                "ORDER BY COALESCE(NULLIF(published_at, ''), NULLIF(collected_at, '')) DESC, id DESC"
+            )
+        else:
+            order_clause = """
+                ORDER BY
+                    CASE UPPER(priority)
+                        WHEN 'HIGH' THEN 1
+                        WHEN 'MEDIUM' THEN 2
+                        WHEN 'LOW' THEN 3
+                        ELSE 4
+                    END ASC,
+                    COALESCE(NULLIF(published_at, ''), NULLIF(collected_at, '')) DESC,
+                    id DESC
+            """
 
         query = f"""
             SELECT
@@ -122,7 +205,7 @@ def get_articles(
                 reason
             FROM articles
             WHERE {where_sql}
-            ORDER BY id DESC
+            {order_clause}
         """
 
         if limit is not None:
@@ -139,7 +222,13 @@ def get_articles(
         return []
 
 
-def count_articles(category=None, priority=None, date_range="all", search=None):
+def count_articles(
+    category=None,
+    priority=None,
+    date_range="all",
+    search=None,
+    region=None,
+):
     """Get count of filtered articles."""
     try:
         where_sql, params = build_filter_query(
@@ -147,6 +236,7 @@ def count_articles(category=None, priority=None, date_range="all", search=None):
             priority=priority,
             date_range=date_range,
             search=search,
+            region=region,
         )
 
         query = f"SELECT COUNT(*) FROM articles WHERE {where_sql}"
@@ -158,6 +248,21 @@ def count_articles(category=None, priority=None, date_range="all", search=None):
     except Exception as e:
         app.logger.error("Error in count_articles: %s", e)
         return 0
+
+
+def get_regional_articles(region: str, limit: int = 8, sort_by: str = "priority"):
+    """Fetch top articles dedicated to a specific region."""
+    return get_articles(region=region, sort_by=sort_by, limit=limit)
+
+
+def get_regional_counts():
+    """Return counts for the 4 geographical categories."""
+    return {
+        "chennai": count_articles(region="chennai"),
+        "tamil_nadu": count_articles(region="tamil_nadu"),
+        "india": count_articles(region="india"),
+        "global": count_articles(region="global"),
+    }
 
 
 def get_community_articles(limit=10):
@@ -298,9 +403,13 @@ def dashboard():
     priority = request.args.get("priority", "").strip()
     date_range = request.args.get("date_range", "all").strip().lower()
     search = request.args.get("search", "").strip()
+    region = request.args.get("region", "all").strip().lower()
+    sort_by = request.args.get("sort_by", "priority").strip().lower()
 
     if date_range not in ("today", "7days", "all"):
         date_range = "all"
+    if sort_by not in ("priority", "newest"):
+        sort_by = "priority"
 
     # Fetch filtered articles for main alerts section
     articles = get_articles(
@@ -308,9 +417,18 @@ def dashboard():
         priority=priority or None,
         date_range=date_range,
         search=search or None,
+        region=region if region != "all" else None,
+        sort_by=sort_by,
+        limit=60,
     )
 
     stats = get_dashboard_stats()
+    regional_counts = get_regional_counts()
+    chennai_alerts = get_regional_articles("chennai", limit=8, sort_by=sort_by)
+    tn_alerts = get_regional_articles("tamil_nadu", limit=8, sort_by=sort_by)
+    india_alerts = get_regional_articles("india", limit=8, sort_by=sort_by)
+    global_alerts = get_regional_articles("global", limit=6, sort_by=sort_by)
+
     community_articles = get_community_articles(limit=10)
     air_quality_articles = get_air_quality_articles(limit=6)
 
@@ -319,12 +437,20 @@ def dashboard():
         articles=articles,
         community_articles=community_articles,
         air_quality_articles=air_quality_articles,
+        chennai_alerts=chennai_alerts,
+        tn_alerts=tn_alerts,
+        india_alerts=india_alerts,
+        global_alerts=global_alerts,
+        regional_counts=regional_counts,
         selected_category=category,
         selected_priority=priority,
         selected_date_range=date_range,
         selected_search=search,
+        selected_region=region,
+        selected_sort_by=sort_by,
         categories=config.CATEGORIES,
         priorities=config.PRIORITIES,
+        regions=config.REGIONS,
         stats=stats,
     )
 
@@ -336,9 +462,13 @@ def articles_page():
     priority = request.args.get("priority", "").strip()
     date_range = request.args.get("date_range", "all").strip().lower()
     search = request.args.get("search", "").strip()
+    region = request.args.get("region", "all").strip().lower()
+    sort_by = request.args.get("sort_by", "priority").strip().lower()
 
     if date_range not in ("today", "7days", "all"):
         date_range = "all"
+    if sort_by not in ("priority", "newest"):
+        sort_by = "priority"
 
     try:
         page = max(1, int(request.args.get("page", 1)))
@@ -351,6 +481,7 @@ def articles_page():
         priority=priority or None,
         date_range=date_range,
         search=search or None,
+        region=region if region != "all" else None,
     )
 
     total_pages = max(1, math.ceil(total_count / per_page))
@@ -363,6 +494,8 @@ def articles_page():
         priority=priority or None,
         date_range=date_range,
         search=search or None,
+        region=region if region != "all" else None,
+        sort_by=sort_by,
         limit=per_page,
         offset=offset,
     )
@@ -377,8 +510,11 @@ def articles_page():
         selected_priority=priority,
         selected_date_range=date_range,
         selected_search=search,
+        selected_region=region,
+        selected_sort_by=sort_by,
         categories=config.CATEGORIES,
         priorities=config.PRIORITIES,
+        regions=config.REGIONS,
         page=page,
         per_page=per_page,
         total_count=total_count,

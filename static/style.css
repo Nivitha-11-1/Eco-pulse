@@ -283,13 +283,35 @@ img {
     margin-bottom: 8px;
 }
 
+.intro-hero h1,
 .intro-hero h2 {
     font-family: var(--font-heading);
     font-size: 1.95rem;
     font-weight: 700;
     color: var(--forest-800);
     letter-spacing: -0.4px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
+}
+
+.developer-credit {
+    font-size: 0.925rem;
+    font-weight: 500;
+    color: var(--forest-700);
+    margin-top: 2px;
+    margin-bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #edf7f0;
+    padding: 4px 14px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--forest-200);
+}
+
+.developer-credit strong {
+    font-weight: 700;
+    color: var(--forest-900);
+    letter-spacing: 0.3px;
 }
 
 .intro-description {
@@ -426,7 +448,7 @@ img {
 
 .filter-controls-grid {
     display: grid;
-    grid-template-columns: 2fr 1.2fr 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 16px;
     align-items: flex-end;
 }
@@ -1690,6 +1712,179 @@ img {
     font-size: 0.775rem;
     color: var(--forest-400);
     margin-top: 18px;
+}
+
+/* ==========================================================================
+   Geographical Categories & Region Tabs
+   ========================================================================== */
+.geo-hub-section {
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xl);
+    padding: 24px 28px;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow-card);
+}
+
+.geo-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.geo-card {
+    background: var(--surface-alt);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.geo-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--forest-400);
+}
+
+.geo-card.active {
+    background: #ffffff;
+    border-color: var(--forest-600);
+    box-shadow: 0 0 0 2px var(--forest-500);
+}
+
+.geo-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.geo-icon {
+    font-size: 1.6rem;
+}
+
+.geo-count-badge {
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    color: var(--forest-800);
+}
+
+.geo-title {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--forest-900);
+    margin-bottom: 4px;
+}
+
+.geo-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.geo-tabs-bar {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border-light);
+}
+
+.geo-tab-btn {
+    padding: 10px 18px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.geo-tab-btn:hover {
+    color: var(--forest-700);
+    background: rgba(45, 106, 79, 0.04);
+}
+
+.geo-tab-btn.active {
+    color: var(--forest-800);
+    border-bottom-color: var(--forest-600);
+    background: var(--forest-wash);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+/* Region Badges */
+.badge-region {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.725rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+}
+
+.badge-region-chennai {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+.badge-region-tn {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+.badge-region-india {
+    background: #ffedd5;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+}
+
+.badge-region-global {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.feed-time-block {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 8px 0 10px;
+}
+
+.feed-time-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 /* ==========================================================================

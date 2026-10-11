@@ -39,6 +39,7 @@ jobs:
 
       - name: Run news ingestion pipeline (Local Runner Verification)
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -58,7 +59,7 @@ jobs:
       # If a live deployment URL and PIPELINE_SECRET are configured in GitHub Secrets,
       # trigger the live production app to update its persistent database directly.
       - name: Trigger Live Production Site Sync (Optional)
-        if: env.DEPLOYED_APP_URL != '' && env.PIPELINE_SECRET != ''
+        if: ${{ secrets.DEPLOYED_APP_URL != '' && secrets.PIPELINE_SECRET != '' }}
         env:
           DEPLOYED_APP_URL: ${{ secrets.DEPLOYED_APP_URL }}
           PIPELINE_SECRET: ${{ secrets.PIPELINE_SECRET }}

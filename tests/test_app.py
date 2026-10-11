@@ -95,7 +95,7 @@ def test_about_page_loads(client):
     response = client.get("/about")
     assert response.status_code == 200
     assert b"About EcoPulse" in response.data
-    assert b"Monitored RSS Feeds" in response.data
+    assert b"Environmental Information Sources" in response.data or b"Monitored RSS Feeds" in response.data
     assert b"Technology Stack" in response.data
     assert b"The Hindu" in response.data
 

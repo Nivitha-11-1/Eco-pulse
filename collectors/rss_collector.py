@@ -37,6 +37,10 @@ DEFAULT_HEADERS = {
 }
 REQUEST_TIMEOUT = 12  # seconds
 
+# Set default socket timeout so feedparser fallback never hangs indefinitely
+import socket
+socket.setdefaulttimeout(REQUEST_TIMEOUT)
+
 
 def _parse_entry_date(entry: Any) -> str:
     """Safely extracts and formats the publication date of an RSS entry.
@@ -120,19 +124,13 @@ def collect_news(
         feed = feedparser.parse(raw_content)
 
     except requests.exceptions.RequestException as net_err:
-        logger.error(
+        logger.warning(
             "Network error fetching feed '%s' from %s: %s",
             source_name,
             feed_url,
             str(net_err),
         )
-        # Try direct feedparser parse as a graceful fallback
-        try:
-            logger.info("Attempting direct feedparser fallback for %s...", feed_url)
-            feed = feedparser.parse(feed_url)
-        except Exception as fallback_err:
-            logger.error("Fallback also failed for %s: %s", feed_url, str(fallback_err))
-            return []
+        return []
     except Exception as err:
         logger.error("Unexpected error fetching feed '%s': %s", source_name, str(err))
         return []

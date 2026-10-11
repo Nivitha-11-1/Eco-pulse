@@ -1,20 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}EcoPulse — Community News & Eco-Alert Aggregator{% endblock %}
+{% block title %}EcoPulse — Community Eco Alerts &amp; Environmental Aggregator{% endblock %}
 
 {% block content %}
 <!-- Section: Hero & Introduction -->
 <section class="intro-hero">
     <div class="intro-text">
         <div class="intro-badge">🌱 Live Environmental Intelligence</div>
-        <h2>Community Eco Alerts</h2>
+        <h1>Community Eco Alerts</h1>
+        <div class="developer-credit">Developed by <strong>Nivitha R</strong></div>
         <p class="intro-description">
-            Real-time monitoring of Chennai &amp; Tamil Nadu regional eco-alerts, air quality indicators, severe weather warnings, civic disruptions, and green campus initiatives.
+            Real-time environmental monitoring prioritizing Chennai local alerts, Tamil Nadu state advisories, and India national civic intelligence alongside verified campus sustainability initiatives.
         </p>
     </div>
     <div class="intro-meta">
-        <span class="meta-pill">📡 7 RSS Feeds Monitored</span>
-        <span class="meta-pill">🤖 AI Relevance Verified</span>
+        <span class="meta-pill">📡 Multiple Environmental Information Sources</span>
+        <span class="meta-pill">🤖 Automated Relevance Verification</span>
         <span class="meta-pill">⚡ Updated Daily at 7:00 AM IST</span>
     </div>
 </section>
@@ -34,7 +35,7 @@
         <div class="stat-icon-wrapper">🚨</div>
         <div class="stat-details">
             <span class="stat-number">{{ stats["high"] }}</span>
-            <span class="stat-label">High Priority</span>
+            <span class="stat-label">High Priority (Urgent)</span>
         </div>
         <div class="stat-progress-bar"></div>
     </div>
@@ -52,9 +53,66 @@
         <div class="stat-icon-wrapper">🌿</div>
         <div class="stat-details">
             <span class="stat-number">{{ stats["low"] }}</span>
-            <span class="stat-label">Low Priority</span>
+            <span class="stat-label">Low Priority (Awareness)</span>
         </div>
         <div class="stat-progress-bar"></div>
+    </div>
+</section>
+
+<!-- Section: Geographical Alert Hub (4 Distinct Geographical Categories) -->
+<section class="geo-hub-section" aria-label="Geographical Alert Hub">
+    <div class="section-top-bar">
+        <div>
+            <div class="section-kicker">🗺️ GEOGRAPHICAL INTELLIGENCE FOCUS</div>
+            <h2 class="section-main-heading">Environmental &amp; Civic Alert Hubs</h2>
+            <p class="section-subtext">Click any geographical hub to instantly focus on local Chennai, Tamil Nadu state, or National Indian alerts.</p>
+        </div>
+    </div>
+
+    <div class="geo-grid">
+        <a href="/?region=chennai" class="geo-card {% if selected_region == 'chennai' %}active{% endif %}">
+            <div class="geo-card-top">
+                <span class="geo-icon">📍</span>
+                <span class="geo-count-badge">{{ regional_counts["chennai"] }} Alerts</span>
+            </div>
+            <div>
+                <h3 class="geo-title">Chennai — Local Alerts</h3>
+                <p class="geo-desc">Greater Chennai Corporation updates, stormwater drain work, water shortages, MTC/CMRL disruptions, and localized hazards.</p>
+            </div>
+        </a>
+
+        <a href="/?region=tamil_nadu" class="geo-card {% if selected_region == 'tamil_nadu' %}active{% endif %}">
+            <div class="geo-card-top">
+                <span class="geo-icon">🏛️</span>
+                <span class="geo-count-badge">{{ regional_counts["tamil_nadu"] }} Alerts</span>
+            </div>
+            <div>
+                <h3 class="geo-title">Tamil Nadu — State Alerts</h3>
+                <p class="geo-desc">Statewide reservoir levels, TNPCB notices, coastal weather alerts, Western Ghats ecology, and agriculture advisories.</p>
+            </div>
+        </a>
+
+        <a href="/?region=india" class="geo-card {% if selected_region == 'india' %}active{% endif %}">
+            <div class="geo-card-top">
+                <span class="geo-icon">🇮🇳</span>
+                <span class="geo-count-badge">{{ regional_counts["india"] }} Alerts</span>
+            </div>
+            <div>
+                <h3 class="geo-title">India — National Alerts</h3>
+                <p class="geo-desc">IMD monsoon forecasts, heatwave/cyclone warnings, national air quality indices (CPCB), NDMA directives, and clean energy shifts.</p>
+            </div>
+        </a>
+
+        <a href="/?region=global" class="geo-card {% if selected_region == 'global' %}active{% endif %}">
+            <div class="geo-card-top">
+                <span class="geo-icon">🌍</span>
+                <span class="geo-count-badge">{{ regional_counts["global"] }} Alerts</span>
+            </div>
+            <div>
+                <h3 class="geo-title">Other Relevant Global Alerts</h3>
+                <p class="geo-desc">Key international climate pacts, worldwide extreme weather reports, and global carbon reduction innovations.</p>
+            </div>
+        </a>
     </div>
 </section>
 
@@ -65,7 +123,7 @@
             <span class="filter-icon">🔍</span>
             <h3>Search &amp; Filter Alerts</h3>
         </div>
-        <span class="filter-subtitle">Narrow alerts by keywords, environmental category, urgency, or timeline</span>
+        <span class="filter-subtitle">Filter by keywords, geographical region, environmental category, priority, or sort order</span>
     </div>
 
     <form method="GET" action="/" class="filter-form" id="filterForm">
@@ -83,6 +141,18 @@
                         value="{{ selected_search }}"
                     >
                 </div>
+            </div>
+
+            <!-- Region Filter -->
+            <div class="form-group">
+                <label for="region">Geographical Focus</label>
+                <select name="region" id="region">
+                    <option value="all" {% if selected_region == "all" or not selected_region %}selected{% endif %}>All Regions</option>
+                    <option value="chennai" {% if selected_region == "chennai" %}selected{% endif %}>📍 Chennai — Local Alerts</option>
+                    <option value="tamil_nadu" {% if selected_region == "tamil_nadu" %}selected{% endif %}>🏛️ Tamil Nadu — State Alerts</option>
+                    <option value="india" {% if selected_region == "india" %}selected{% endif %}>🇮🇳 India — National Alerts</option>
+                    <option value="global" {% if selected_region == "global" %}selected{% endif %}>🌍 Other Relevant Global Alerts</option>
+                </select>
             </div>
 
             <!-- Category Dropdown -->
@@ -111,13 +181,22 @@
                 </select>
             </div>
 
+            <!-- Sort By Dropdown -->
+            <div class="form-group">
+                <label for="sort_by">Sort By</label>
+                <select name="sort_by" id="sort_by">
+                    <option value="priority" {% if selected_sort_by == "priority" or not selected_sort_by %}selected{% endif %}>🚨 Highest Priority First</option>
+                    <option value="newest" {% if selected_sort_by == "newest" %}selected{% endif %}>🕒 Newest Date First</option>
+                </select>
+            </div>
+
             <!-- Date Range Dropdown -->
             <div class="form-group">
                 <label for="date_range">Article Date</label>
                 <select name="date_range" id="date_range">
+                    <option value="all" {% if selected_date_range == "all" %}selected{% endif %}>All Articles</option>
                     <option value="today" {% if selected_date_range == "today" %}selected{% endif %}>Today</option>
                     <option value="7days" {% if selected_date_range == "7days" %}selected{% endif %}>Last 7 Days</option>
-                    <option value="all" {% if selected_date_range == "all" %}selected{% endif %}>All Articles</option>
                 </select>
             </div>
         </div>
@@ -250,14 +329,51 @@
 
 <!-- Section 3: All Community Eco Alerts (Filtered Results List) -->
 <section class="articles-main-section" aria-labelledby="alertsHeading">
+    <!-- Interactive Regional Navigation Tabs -->
+    <div class="geo-tabs-bar" role="tablist">
+        <a href="/?region=all{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_sort_by %}&sort_by={{ selected_sort_by }}{% endif %}" class="geo-tab-btn {% if selected_region == 'all' or not selected_region %}active{% endif %}">
+            ⚡ All Alerts ({{ stats["total"] }})
+        </a>
+        <a href="/?region=chennai{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_sort_by %}&sort_by={{ selected_sort_by }}{% endif %}" class="geo-tab-btn {% if selected_region == 'chennai' %}active{% endif %}">
+            📍 Chennai — Local ({{ regional_counts["chennai"] }})
+        </a>
+        <a href="/?region=tamil_nadu{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_sort_by %}&sort_by={{ selected_sort_by }}{% endif %}" class="geo-tab-btn {% if selected_region == 'tamil_nadu' %}active{% endif %}">
+            🏛️ Tamil Nadu — State ({{ regional_counts["tamil_nadu"] }})
+        </a>
+        <a href="/?region=india{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_sort_by %}&sort_by={{ selected_sort_by }}{% endif %}" class="geo-tab-btn {% if selected_region == 'india' %}active{% endif %}">
+            🇮🇳 India — National ({{ regional_counts["india"] }})
+        </a>
+        <a href="/?region=global{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_sort_by %}&sort_by={{ selected_sort_by }}{% endif %}" class="geo-tab-btn {% if selected_region == 'global' %}active{% endif %}">
+            🌍 Global Alerts ({{ regional_counts["global"] }})
+        </a>
+    </div>
+
     <div class="section-top-bar">
         <div>
-            <div class="section-kicker">📋 COMPREHENSIVE STREAM</div>
-            <h2 id="alertsHeading" class="section-main-heading">Latest Eco Alerts</h2>
-            <p class="section-subtext">All verified environmental and civic intelligence collected from monitored feeds.</p>
+            <div class="section-kicker">📋 COMMUNITY STREAM</div>
+            <h2 id="alertsHeading" class="section-main-heading">
+                {% if selected_region == 'chennai' %}
+                    Chennai — Local Alerts
+                {% elif selected_region == 'tamil_nadu' %}
+                    Tamil Nadu — State Alerts
+                {% elif selected_region == 'india' %}
+                    India — National Alerts
+                {% elif selected_region == 'global' %}
+                    Other Relevant Global Alerts
+                {% else %}
+                    Verified Environmental Alerts
+                {% endif %}
+            </h2>
+            <p class="section-subtext">
+                {% if selected_sort_by == 'newest' %}
+                    Sorted by newest publication date first.
+                {% else %}
+                    Ranked by urgency: High Priority alerts appear first.
+                {% endif %}
+            </p>
         </div>
         <div class="results-counter">
-            <span class="count-badge">{{ articles|length }}</span> article(s) found
+            <span class="count-badge">{{ articles|length }}</span> alert(s) displayed
         </div>
     </div>
 
@@ -271,8 +387,20 @@
                     <span class="priority-pill priority-{{ article['priority']|lower }}">
                         {{ article["priority"] }}
                     </span>
+                    <!-- Regional categorization badge -->
+                    {% set loc_lower = (article['location'] or '')|lower %}
+                    {% set src_lower = (article['source'] or '')|lower %}
+                    {% if 'chennai' in loc_lower or 'chennai' in src_lower or 'madhavaram' in loc_lower %}
+                        <span class="badge-region badge-region-chennai">📍 Chennai Local</span>
+                    {% elif 'tamil nadu' in loc_lower or 'tamil nadu' in src_lower or 'coimbatore' in loc_lower or 'madurai' in loc_lower or 'dindigul' in loc_lower %}
+                        <span class="badge-region badge-region-tn">🏛️ Tamil Nadu State</span>
+                    {% elif 'global' in loc_lower or 'bbc' in src_lower or 'un news' in src_lower or 'cornell' in src_lower %}
+                        <span class="badge-region badge-region-global">🌍 Global Alert</span>
+                    {% else %}
+                        <span class="badge-region badge-region-india">🇮🇳 National Alert</span>
+                    {% endif %}
                 </div>
-                <span class="feed-location">📍 {{ article["location"] or "Tamil Nadu" }}</span>
+                <span class="feed-location">📍 {{ article["location"] or "India" }}</span>
             </div>
 
             <h3 class="feed-article-title">
@@ -281,18 +409,23 @@
                 </a>
             </h3>
 
-            <div class="feed-meta-row">
-                <span class="feed-source">📰 {{ article["source"] }}</span>
+            <!-- Clearly display publication date, last-updated time, and source -->
+            <div class="feed-time-block">
+                <span class="feed-time-item">📰 <strong>{{ article["source"] }}</strong></span>
                 {% if article["published_at"] %}
                 <span class="meta-dot">•</span>
-                <span class="feed-time">🕒 {{ article["published_at"] }}</span>
+                <span class="feed-time-item">🕒 <strong>Published:</strong> {{ article["published_at"][:19] }}</span>
+                {% endif %}
+                {% if article["collected_at"] %}
+                <span class="meta-dot">•</span>
+                <span class="feed-time-item">🔄 <strong>Updated:</strong> {{ article["collected_at"][:19] }}</span>
                 {% endif %}
             </div>
 
             {% if article["summary"] %}
             <div class="summary-box">
                 <div class="summary-label">
-                    <span class="ai-chip">🤖 AI Summary</span>
+                    <span class="ai-chip">🤖 Executive Summary</span>
                 </div>
                 <p class="summary-text">{{ article["summary"] }}</p>
             </div>
@@ -304,7 +437,7 @@
 
             {% if article["recommended_action"] %}
             <div class="action-box">
-                <div class="action-label">✅ Recommended Action:</div>
+                <div class="action-label">✅ Recommended Citizen Action:</div>
                 <p class="action-text">{{ article["recommended_action"] }}</p>
             </div>
             {% endif %}
@@ -325,8 +458,8 @@
     <!-- Empty State -->
     <div class="empty-state-panel">
         <div class="empty-icon-leaf">🌱</div>
-        <h2>No relevant articles found</h2>
-        <p>No alerts match your current search query or filter selection. Try adjusting the category, priority, or date filters to view more results.</p>
+        <h2>No relevant alerts found</h2>
+        <p>No relevant articles found matching your current search query or filter selection. Try adjusting the region, category, priority, or date filters to view more results.</p>
         <div class="empty-actions">
             <a href="/" class="btn-reset">Clear All Filters</a>
         </div>

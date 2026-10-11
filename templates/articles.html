@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}All Eco Alerts & Articles — EcoPulse{% endblock %}
+{% block title %}All Eco Alerts &amp; Articles — EcoPulse{% endblock %}
 
 {% block content %}
 <!-- Page Header -->
@@ -9,7 +9,7 @@
         <span class="page-kicker">ARCHIVE &amp; EXPLORER</span>
         <h1 class="page-heading">Environmental Alerts &amp; News</h1>
         <p class="page-subheading">
-            Browse, search, and filter verified regional environmental and civic reports collected across all active feeds.
+            Browse, search, and filter verified regional environmental and civic reports collected across multiple information sources.
         </p>
     </div>
 </div>
@@ -31,6 +31,18 @@
                         value="{{ selected_search }}"
                     >
                 </div>
+            </div>
+
+            <!-- Region Filter -->
+            <div class="form-group">
+                <label for="region">Geographical Focus</label>
+                <select name="region" id="region">
+                    <option value="all" {% if selected_region == "all" or not selected_region %}selected{% endif %}>All Regions</option>
+                    <option value="chennai" {% if selected_region == "chennai" %}selected{% endif %}>📍 Chennai — Local Alerts</option>
+                    <option value="tamil_nadu" {% if selected_region == "tamil_nadu" %}selected{% endif %}>🏛️ Tamil Nadu — State Alerts</option>
+                    <option value="india" {% if selected_region == "india" %}selected{% endif %}>🇮🇳 India — National Alerts</option>
+                    <option value="global" {% if selected_region == "global" %}selected{% endif %}>🌍 Other Relevant Global Alerts</option>
+                </select>
             </div>
 
             <!-- Category Dropdown -->
@@ -59,13 +71,22 @@
                 </select>
             </div>
 
+            <!-- Sort By Dropdown -->
+            <div class="form-group">
+                <label for="sort_by">Sort By</label>
+                <select name="sort_by" id="sort_by">
+                    <option value="priority" {% if selected_sort_by == "priority" or not selected_sort_by %}selected{% endif %}>🚨 Highest Priority First</option>
+                    <option value="newest" {% if selected_sort_by == "newest" %}selected{% endif %}>🕒 Newest Date First</option>
+                </select>
+            </div>
+
             <!-- Date Range Dropdown -->
             <div class="form-group">
                 <label for="date_range">Article Date</label>
                 <select name="date_range" id="date_range">
+                    <option value="all" {% if selected_date_range == "all" %}selected{% endif %}>All Articles</option>
                     <option value="today" {% if selected_date_range == "today" %}selected{% endif %}>Today</option>
                     <option value="7days" {% if selected_date_range == "7days" %}selected{% endif %}>Last 7 Days</option>
-                    <option value="all" {% if selected_date_range == "all" %}selected{% endif %}>All Articles</option>
                 </select>
             </div>
         </div>
@@ -82,7 +103,7 @@
 <!-- Results Header & Pagination Info -->
 <div class="articles-results-bar">
     <div class="results-stats">
-        <strong>{{ total_count }}</strong> article(s) found
+        <strong>{{ total_count }}</strong> alert(s) found
         {% if total_count > 0 %}
         <span class="pagination-counter-label">• Page {{ page }} of {{ total_pages }}</span>
         {% endif %}
@@ -99,8 +120,20 @@
                 <span class="priority-pill priority-{{ article['priority']|lower }}">
                     {{ article["priority"] }}
                 </span>
+                <!-- Regional categorization badge -->
+                {% set loc_lower = (article['location'] or '')|lower %}
+                {% set src_lower = (article['source'] or '')|lower %}
+                {% if 'chennai' in loc_lower or 'chennai' in src_lower or 'madhavaram' in loc_lower %}
+                    <span class="badge-region badge-region-chennai">📍 Chennai Local</span>
+                {% elif 'tamil nadu' in loc_lower or 'tamil nadu' in src_lower or 'coimbatore' in loc_lower or 'madurai' in loc_lower or 'dindigul' in loc_lower %}
+                    <span class="badge-region badge-region-tn">🏛️ Tamil Nadu State</span>
+                {% elif 'global' in loc_lower or 'bbc' in src_lower or 'un news' in src_lower or 'cornell' in src_lower %}
+                    <span class="badge-region badge-region-global">🌍 Global Alert</span>
+                {% else %}
+                    <span class="badge-region badge-region-india">🇮🇳 National Alert</span>
+                {% endif %}
             </div>
-            <span class="feed-location">📍 {{ article["location"] or "Tamil Nadu" }}</span>
+            <span class="feed-location">📍 {{ article["location"] or "India" }}</span>
         </div>
 
         <h2 class="feed-article-title">
@@ -109,18 +142,22 @@
             </a>
         </h2>
 
-        <div class="feed-meta-row">
-            <span class="feed-source">📰 {{ article["source"] }}</span>
+        <div class="feed-time-block">
+            <span class="feed-time-item">📰 <strong>{{ article["source"] }}</strong></span>
             {% if article["published_at"] %}
             <span class="meta-dot">•</span>
-            <span class="feed-time">🕒 {{ article["published_at"] }}</span>
+            <span class="feed-time-item">🕒 <strong>Published:</strong> {{ article["published_at"][:19] }}</span>
+            {% endif %}
+            {% if article["collected_at"] %}
+            <span class="meta-dot">•</span>
+            <span class="feed-time-item">🔄 <strong>Updated:</strong> {{ article["collected_at"][:19] }}</span>
             {% endif %}
         </div>
 
         {% if article["summary"] %}
         <div class="summary-box">
             <div class="summary-label">
-                <span class="ai-chip">🤖 AI Summary</span>
+                <span class="ai-chip">🤖 Executive Summary</span>
             </div>
             <p class="summary-text">{{ article["summary"] }}</p>
         </div>
@@ -157,7 +194,7 @@
         <li class="page-item">
             <a
                 class="page-link prev-link"
-                href="?page={{ page - 1 }}&search={{ selected_search }}&category={{ selected_category }}&priority={{ selected_priority }}&date_range={{ selected_date_range }}"
+                href="?page={{ page - 1 }}&search={{ selected_search }}&region={{ selected_region }}&sort_by={{ selected_sort_by }}&category={{ selected_category }}&priority={{ selected_priority }}&date_range={{ selected_date_range }}"
                 aria-label="Previous page"
             >
                 ← Previous
@@ -169,7 +206,7 @@
         <li class="page-item">
             <a
                 class="page-link {% if p == page %}active{% endif %}"
-                href="?page={{ p }}&search={{ selected_search }}&category={{ selected_category }}&priority={{ selected_priority }}&date_range={{ selected_date_range }}"
+                href="?page={{ p }}&search={{ selected_search }}&region={{ selected_region }}&sort_by={{ selected_sort_by }}&category={{ selected_category }}&priority={{ selected_priority }}&date_range={{ selected_date_range }}"
                 {% if p == page %}aria-current="page"{% endif %}
             >
                 {{ p }}
@@ -181,7 +218,7 @@
         <li class="page-item">
             <a
                 class="page-link next-link"
-                href="?page={{ page + 1 }}&search={{ selected_search }}&category={{ selected_category }}&priority={{ selected_priority }}&date_range={{ selected_date_range }}"
+                href="?page={{ page + 1 }}&search={{ selected_search }}&region={{ selected_region }}&sort_by={{ selected_sort_by }}&category={{ selected_category }}&priority={{ selected_priority }}&date_range={{ selected_date_range }}"
                 aria-label="Next page"
             >
                 Next →
@@ -196,8 +233,8 @@
 <!-- Empty State -->
 <div class="empty-state-panel">
     <div class="empty-icon-leaf">🌱</div>
-    <h2>No relevant articles found</h2>
-    <p>No articles match your search parameters. Try adjusting or clearing your filters to see more results.</p>
+    <h2>No articles found</h2>
+    <p>No alerts match your current filter criteria. Try adjusting the region, category, priority, or search keywords.</p>
     <div class="empty-actions">
         <a href="/articles" class="btn-reset">Reset All Filters</a>
     </div>

@@ -96,6 +96,11 @@ def ai_check_failed(reason: str) -> bool:
     return any(marker in reason_lower for marker in AI_ERROR_MARKERS)
 
 
+from zoneinfo import ZoneInfo
+
+IST = ZoneInfo("Asia/Kolkata")
+
+
 def run_pipeline(
     sources: Optional[List[Dict[str, Any]]] = None,
     db_path: Optional[Union[str, Path]] = None,
@@ -106,10 +111,14 @@ def run_pipeline(
     enable_quick_filter: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """Run the EcoPulse RSS-to-database pipeline."""
+    start_utc = datetime.now(timezone.utc)
+    start_ist = datetime.now(IST)
 
     if verbose:
         safe_print("\n" + "=" * 65)
         safe_print(" [EcoPulse] Pipeline Started")
+        safe_print(f" Start Time (UTC): {start_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        safe_print(f" Start Time (IST): {start_ist.strftime('%Y-%m-%d %H:%M:%S IST')}")
         safe_print(" (Quick Filter + AI Relevance + Classification + Summary)")
         safe_print("=" * 65)
 
@@ -589,19 +598,72 @@ def run_pipeline(
         )
 
         database_stats = get_statistics(db_path=target_db)
+        from database.database import get_regional_statistics
+        regional_breakdown = get_regional_statistics(db_path=target_db)
+
+        end_utc = datetime.now(timezone.utc)
+        end_ist = datetime.now(IST)
+        duration_sec = (end_utc - start_utc).total_seconds()
 
         safe_print(
             f"  Total Articles in Database Now:     "
             f"{database_stats.get('total_articles', 0)}"
         )
         safe_print(
-            f"  Total Relevant Articles in DB:      "
+            f"  Total Relevant Alerts in DB:        "
             f"{database_stats.get('relevant_articles', 0)}"
         )
+        safe_print(
+            f"    - High Priority Alerts:           "
+            f"{database_stats.get('high_priority_count', 0)}"
+        )
+        safe_print(
+            f"    - Medium Priority Alerts:         "
+            f"{database_stats.get('medium_priority_count', 0)}"
+        )
+        safe_print(
+            f"    - Low Priority Alerts:            "
+            f"{database_stats.get('low_priority_count', 0)}"
+        )
+        safe_print("  Regional Focus Breakdown:")
+        safe_print(f"    - Chennai Local Alerts:          {regional_breakdown.get('chennai', 0)}")
+        safe_print(f"    - Tamil Nadu State Alerts:       {regional_breakdown.get('tamil_nadu', 0)}")
+        safe_print(f"    - India National Alerts:         {regional_breakdown.get('india', 0)}")
+        safe_print(f"    - Other Global Alerts:           {regional_breakdown.get('global', 0)}")
+        safe_print(f"  Completion Time (UTC):              {end_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        safe_print(f"  Completion Time (IST):              {end_ist.strftime('%Y-%m-%d %H:%M:%S IST')}")
+        safe_print(f"  Execution Duration:                 {duration_sec:.2f} seconds")
         safe_print("=" * 65 + "\n")
+
+    # Automatically sync seed file if using SQLite and new articles were added
+    if stats["articles_inserted"] > 0:
+        try:
+            import json, sqlite3
+            seed_file = BASE_DIR / "data" / "seed_articles.json"
+            if Path(target_db).exists():
+                conn = sqlite3.connect(str(target_db))
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+                cur.execute("SELECT * FROM articles ORDER BY id ASC")
+                all_rows = [dict(r) for r in cur.fetchall()]
+                conn.close()
+                with open(seed_file, "w", encoding="utf-8") as sf:
+                    json.dump(all_rows, sf, indent=2, ensure_ascii=False)
+                if verbose:
+                    safe_print(f"[*] Synchronized {len(all_rows)} articles with seed_articles.json.")
+        except Exception as sync_err:
+            logger.warning("Could not sync seed_articles.json: %s", sync_err)
 
     return stats
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    try:
+        pipeline_stats = run_pipeline()
+        if pipeline_stats.get("sources_failed", 0) > 0 and pipeline_stats.get("sources_processed", 0) == 0:
+            logger.error("All sources failed to collect articles.")
+            sys.exit(1)
+        sys.exit(0)
+    except Exception as exc:
+        logger.exception("Pipeline execution failed fatally: %s", exc)
+        sys.exit(1)

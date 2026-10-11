@@ -300,12 +300,60 @@ def insert_articles(
     }
 
 
+def get_region_condition(region: Optional[str]) -> Tuple[str, List[Any]]:
+    """Generate SQL clause and parameters for regional filtering."""
+    if not region or region.lower() == "all":
+        return "", []
+    r = region.strip().lower()
+    if r == "chennai":
+        return (
+            "(LOWER(location) LIKE ? OR LOWER(title) LIKE ? OR LOWER(source) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ?)",
+            ["%chennai%", "%chennai%", "%chennai%", "%madhavaram%", "%tondiarpet%"],
+        )
+    elif r == "tamil_nadu":
+        return (
+            "(LOWER(location) LIKE ? OR LOWER(title) LIKE ? OR LOWER(source) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ?)",
+            [
+                "%tamil nadu%", "%tamil nadu%", "%tamil nadu%",
+                "%chennai%", "%coimbatore%", "%madurai%",
+                "%salem%", "%tiruchirappalli%", "%tirunelveli%",
+                "%dindigul%", "%thiruvallur%",
+            ],
+        )
+    elif r == "india":
+        return (
+            "(LOWER(location) LIKE ? OR LOWER(title) LIKE ? OR LOWER(source) LIKE ? "
+            "OR LOWER(source) LIKE ? OR LOWER(source) LIKE ? OR LOWER(source) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? OR LOWER(location) LIKE ? "
+            "OR LOWER(location) LIKE ? OR LOWER(location) LIKE ?)",
+            [
+                "%india%", "%india%", "%the hindu%",
+                "%times of india%", "%et infra%", "%indian express%",
+                "%delhi%", "%mumbai%", "%bengaluru%",
+                "%chennai%", "%tamil nadu%",
+            ],
+        )
+    elif r == "global":
+        return (
+            "(LOWER(location) = ? OR LOWER(source) LIKE ? OR LOWER(source) LIKE ? "
+            "OR LOWER(source) LIKE ? OR LOWER(location) LIKE ? OR LOWER(location) LIKE ?)",
+            ["global", "%bbc%", "%un news%", "%cornell%", "%uk%", "%wales%"],
+        )
+    return "", []
+
+
 def get_articles(
     limit: int = 100,
     offset: int = 0,
     category: Optional[str] = None,
     priority: Optional[str] = None,
     location: Optional[str] = None,
+    region: Optional[str] = None,
+    sort_by: str = "priority",
     is_relevant: Optional[int] = None,
     search: Optional[str] = None,
     db_path: Optional[Union[str, Path]] = None,
@@ -318,6 +366,8 @@ def get_articles(
         category: Filter by exact category.
         priority: Filter by priority (HIGH, MEDIUM, LOW).
         location: Filter by location substring.
+        region: Filter by geographical region ('chennai', 'tamil_nadu', 'india', 'global').
+        sort_by: Sort order ('priority' for High-first, 'newest' for latest date).
         is_relevant: Filter by relevance flag (1 or 0).
         search: Filter by substring in title, description, or summary.
         db_path: Optional custom database path.
@@ -340,6 +390,12 @@ def get_articles(
         conditions.append("location LIKE ?")
         params.append(f"%{location}%")
 
+    if region and region.lower() != "all":
+        reg_sql, reg_params = get_region_condition(region)
+        if reg_sql:
+            conditions.append(reg_sql)
+            params.extend(reg_params)
+
     if is_relevant is not None:
         conditions.append("is_relevant = ?")
         params.append(int(is_relevant))
@@ -351,10 +407,25 @@ def get_articles(
 
     where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
+    if sort_by == "newest":
+        order_by = "ORDER BY COALESCE(NULLIF(published_at, ''), NULLIF(collected_at, '')) DESC, id DESC"
+    else:
+        order_by = """
+        ORDER BY
+            CASE UPPER(priority)
+                WHEN 'HIGH' THEN 1
+                WHEN 'MEDIUM' THEN 2
+                WHEN 'LOW' THEN 3
+                ELSE 4
+            END ASC,
+            COALESCE(NULLIF(published_at, ''), NULLIF(collected_at, '')) DESC,
+            id DESC
+        """
+
     query = f"""
     SELECT * FROM articles
     {where_clause}
-    ORDER BY id DESC
+    {order_by}
     LIMIT ? OFFSET ?;
     """
     params.extend([limit, offset])
@@ -470,6 +541,74 @@ def get_statistics(
         "relevant_articles": relevant_count,
         "category_breakdown": category_counts,
         "source_breakdown": source_counts,
+    }
+
+
+def get_regional_statistics(
+    db_path: Optional[Union[str, Path]] = None,
+) -> Dict[str, int]:
+    """Calculate counts of relevant articles across the 4 geographical categories.
+
+    Categories:
+        1. Chennai — Local Alerts
+        2. Tamil Nadu — State Alerts
+        3. India — National Alerts
+        4. Other Relevant Global Alerts
+    """
+    with get_db_connection(db_path) as conn:
+        cursor = conn.cursor()
+
+        # Chennai Local
+        cursor.execute("""
+            SELECT COUNT(*) FROM articles
+            WHERE is_relevant = 1
+              AND (LOWER(location) LIKE '%chennai%' OR LOWER(title) LIKE '%chennai%'
+                   OR LOWER(source) LIKE '%chennai%' OR LOWER(location) LIKE '%madhavaram%'
+                   OR LOWER(location) LIKE '%tondiarpet%');
+        """)
+        chennai_count = cursor.fetchone()[0]
+
+        # Tamil Nadu State (all TN including Chennai)
+        cursor.execute("""
+            SELECT COUNT(*) FROM articles
+            WHERE is_relevant = 1
+              AND (LOWER(location) LIKE '%tamil nadu%' OR LOWER(title) LIKE '%tamil nadu%'
+                   OR LOWER(source) LIKE '%tamil nadu%' OR LOWER(location) LIKE '%chennai%'
+                   OR LOWER(location) LIKE '%coimbatore%' OR LOWER(location) LIKE '%madurai%'
+                   OR LOWER(location) LIKE '%salem%' OR LOWER(location) LIKE '%tiruchirappalli%'
+                   OR LOWER(location) LIKE '%tirunelveli%' OR LOWER(location) LIKE '%dindigul%'
+                   OR LOWER(location) LIKE '%thiruvallur%');
+        """)
+        tn_count = cursor.fetchone()[0]
+
+        # India National
+        cursor.execute("""
+            SELECT COUNT(*) FROM articles
+            WHERE is_relevant = 1
+              AND (LOWER(location) LIKE '%india%' OR LOWER(title) LIKE '%india%'
+                   OR LOWER(source) LIKE '%the hindu%' OR LOWER(source) LIKE '%times of india%'
+                   OR LOWER(source) LIKE '%et infra%' OR LOWER(source) LIKE '%indian express%'
+                   OR LOWER(location) LIKE '%delhi%' OR LOWER(location) LIKE '%mumbai%'
+                   OR LOWER(location) LIKE '%bengaluru%' OR LOWER(location) LIKE '%chennai%'
+                   OR LOWER(location) LIKE '%tamil nadu%');
+        """)
+        india_count = cursor.fetchone()[0]
+
+        # Global
+        cursor.execute("""
+            SELECT COUNT(*) FROM articles
+            WHERE is_relevant = 1
+              AND (LOWER(location) = 'global' OR LOWER(source) LIKE '%bbc%'
+                   OR LOWER(source) LIKE '%un news%' OR LOWER(source) LIKE '%cornell%'
+                   OR LOWER(location) LIKE '%uk%' OR LOWER(location) LIKE '%wales%');
+        """)
+        global_count = cursor.fetchone()[0]
+
+    return {
+        "chennai": chennai_count,
+        "tamil_nadu": tn_count,
+        "india": india_count,
+        "global": global_count,
     }
 
 
