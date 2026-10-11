@@ -183,6 +183,12 @@ def get_articles(
                         WHEN 'LOW' THEN 3
                         ELSE 4
                     END ASC,
+                    CASE
+                        WHEN LOWER(location) LIKE '%chennai%' OR LOWER(title) LIKE '%chennai%' THEN 1
+                        WHEN LOWER(location) LIKE '%tamil nadu%' OR LOWER(title) LIKE '%tamil nadu%' THEN 2
+                        WHEN LOWER(location) LIKE '%india%' OR LOWER(source) LIKE '%hindu%' OR LOWER(source) LIKE '%times of india%' OR LOWER(source) LIKE '%indian express%' THEN 3
+                        ELSE 4
+                    END ASC,
                     COALESCE(NULLIF(published_at, ''), NULLIF(collected_at, '')) DESC,
                     id DESC
             """

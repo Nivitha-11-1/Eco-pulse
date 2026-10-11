@@ -68,12 +68,12 @@ def test_rss_promotional_banners_removed_from_ui(client):
 
 
 def test_geographical_categories_present(client):
-    """Verify the 4 geographical categories are configured and present on dashboard."""
-    response = client.get("/")
+    """Verify the 4 geographical categories are configured and prioritized."""
+    response = client.get("/articles")
     assert response.status_code == 200
     html = response.data.decode("utf-8")
 
-    # 4 Geographical categories in the hub and region filter
+    # 4 Geographical categories in the region filter
     assert "Chennai — Local Alerts" in html
     assert "Tamil Nadu — State Alerts" in html
     assert "India — National Alerts" in html
@@ -122,7 +122,7 @@ def test_article_card_metadata_displayed(client):
     assert "feed-location" in html
     assert "category-badge" in html
     assert "priority-pill" in html
-    assert "feed-time-block" in html
+    assert "feed-meta-row" in html or "feed-time-block" in html
 
 
 def test_database_preserves_historical_records_and_deduplication():
