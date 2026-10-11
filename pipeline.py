@@ -635,8 +635,8 @@ def run_pipeline(
         safe_print(f"  Execution Duration:                 {duration_sec:.2f} seconds")
         safe_print("=" * 65 + "\n")
 
-    # Automatically sync seed file if using SQLite and new articles were added
-    if stats["articles_inserted"] > 0:
+    # Automatically sync seed file if using SQLite and new articles were added to primary database
+    if stats["articles_inserted"] > 0 and db_path is None:
         try:
             import json, sqlite3
             seed_file = BASE_DIR / "data" / "seed_articles.json"

@@ -1999,6 +1999,93 @@ img {
     margin-bottom: 22px;
 }
 
+/* ==========================================================================
+   Geographical Coverage Information Box
+   ========================================================================== */
+.geo-coverage-bar {
+    margin-bottom: 24px;
+}
+
+.geo-coverage-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: #ffffff;
+    padding: 12px 20px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.geo-coverage-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.geo-pin-main {
+    font-size: 1.15rem;
+}
+
+.geo-coverage-title {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--forest-900);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.geo-coverage-locations {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.geo-location-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--surface-alt);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-full);
+    color: var(--forest-900);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+
+.geo-location-pill:hover {
+    background: var(--forest-wash);
+    border-color: var(--forest-300);
+    color: var(--forest-700);
+}
+
+.geo-location-pill.active {
+    background: var(--forest-800);
+    border-color: var(--forest-800);
+    color: #ffffff;
+}
+
+.geo-reset-link {
+    font-size: 0.8rem;
+    color: #dc2626;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    background: #fdf2f2;
+}
+
+.geo-reset-link:hover {
+    background: #fee2e2;
+}
+
 .region-boxes-container {
     display: flex;
     align-items: center;

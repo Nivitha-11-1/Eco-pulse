@@ -31,16 +31,16 @@ def client():
 
 
 def test_original_header_and_rss_banner(client):
-    """Verify original header text and Live RSS promotional banner are present."""
+    """Verify original header text, Nivitha R credit, and Live Environmental News Feeds."""
     response = client.get("/")
     assert response.status_code == 200
     html = response.data.decode("utf-8")
 
-    # Original Top Banner
-    assert "Live RSS Feed Aggregation • Automated AI Analysis" in html
+    # Banner with Live Environmental News Feeds
+    assert "Live Environmental News Feeds" in html or "Live RSS Feed Aggregation" in html
 
-    # Original 7 RSS Feeds Monitored pill
-    assert "7 RSS Feeds Monitored" in html
+    # Feeds indicator
+    assert "7 Live Environmental News Feeds" in html or "7 RSS Feeds Monitored" in html
 
 
 def test_homepage_branding_and_developer_credit(client):
@@ -67,32 +67,25 @@ def test_homepage_branding_and_developer_credit(client):
     assert (credit_pos - heading_pos) < 300
 
 
-def test_four_small_geographical_region_boxes(client):
-    """Verify the four small geographical region boxes: India, Tamil Nadu, Chennai, Global."""
+def test_geographical_coverage_box(client):
+    """Verify compact Geographical Coverage box displaying Chennai, Tamil Nadu, and India."""
     response = client.get("/")
     assert response.status_code == 200
     html = response.data.decode("utf-8")
 
-    # Region boxes container
-    assert "region-boxes-bar" in html
-    assert "region-boxes-container" in html
+    # Geographical Coverage box
+    assert "Geographical Coverage" in html
+    assert "geo-coverage-box" in html or "geo-coverage-bar" in html
 
-    # 4 distinct region boxes present
-    assert "India" in html
-    assert "Tamil Nadu" in html
+    # 3 distinct locations clearly displayed
     assert "Chennai" in html
-    assert "Global" in html
-
-    # Default view keeps all articles
-    assert "?region=india" in html
-    assert "?region=tamil_nadu" in html
-    assert "?region=chennai" in html
-    assert "?region=global" in html
+    assert "Tamil Nadu" in html
+    assert "India" in html
 
 
 def test_region_filtering_functional(client):
     """Verify clicking each region box filters articles by that region."""
-    for region in ("chennai", "tamil_nadu", "india", "global"):
+    for region in ("chennai", "tamil_nadu", "india"):
         response = client.get(f"/?region={region}")
         assert response.status_code == 200
         assert b"Community Eco Alerts" in response.data

@@ -14,7 +14,7 @@
         </p>
     </div>
     <div class="intro-meta">
-        <span class="meta-pill">📡 7 RSS Feeds Monitored</span>
+        <span class="meta-pill">📡 7 Live Environmental News Feeds</span>
         <span class="meta-pill">🤖 AI Relevance Verified</span>
         <span class="meta-pill">⚡ Updated Daily at 7:00 AM IST</span>
     </div>
@@ -59,36 +59,25 @@
     </div>
 </section>
 
-<!-- Four Small Geographical Region Filter Boxes -->
-<div class="region-boxes-bar" aria-label="Geographical Region Quick Filters">
-    <div class="region-boxes-container">
-        <span class="region-boxes-label">Focus Region:</span>
-        <div class="region-boxes-grid">
-            <a href="/?region=india{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_date_range %}&date_range={{ selected_date_range }}{% endif %}{% if selected_search %}&search={{ selected_search }}{% endif %}"
-               class="region-box-item {% if selected_region == 'india' %}active{% endif %}">
-                <span class="region-flag">🇮🇳</span>
-                <span class="region-name">India</span>
+<!-- Geographical Coverage Information Box -->
+<div class="geo-coverage-bar" aria-label="Geographical Coverage">
+    <div class="geo-coverage-box">
+        <div class="geo-coverage-header">
+            <span class="geo-pin-main">📍</span>
+            <h3 class="geo-coverage-title">Geographical Coverage</h3>
+        </div>
+        <div class="geo-coverage-locations">
+            <a href="/?region=chennai" class="geo-location-pill {% if selected_region == 'chennai' %}active{% endif %}" title="View Chennai Alerts">
+                <span class="geo-pin">📍</span> Chennai
             </a>
-            <a href="/?region=tamil_nadu{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_date_range %}&date_range={{ selected_date_range }}{% endif %}{% if selected_search %}&search={{ selected_search }}{% endif %}"
-               class="region-box-item {% if selected_region == 'tamil_nadu' %}active{% endif %}">
-                <span class="region-flag">🏛️</span>
-                <span class="region-name">Tamil Nadu</span>
+            <a href="/?region=tamil_nadu" class="geo-location-pill {% if selected_region == 'tamil_nadu' %}active{% endif %}" title="View Tamil Nadu Alerts">
+                <span class="geo-pin">📍</span> Tamil Nadu
             </a>
-            <a href="/?region=chennai{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_date_range %}&date_range={{ selected_date_range }}{% endif %}{% if selected_search %}&search={{ selected_search }}{% endif %}"
-               class="region-box-item {% if selected_region == 'chennai' %}active{% endif %}">
-                <span class="region-flag">📍</span>
-                <span class="region-name">Chennai</span>
-            </a>
-            <a href="/?region=global{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_date_range %}&date_range={{ selected_date_range }}{% endif %}{% if selected_search %}&search={{ selected_search }}{% endif %}"
-               class="region-box-item {% if selected_region == 'global' %}active{% endif %}">
-                <span class="region-flag">🌍</span>
-                <span class="region-name">Global</span>
+            <a href="/?region=india" class="geo-location-pill {% if selected_region == 'india' %}active{% endif %}" title="View India National Alerts">
+                <span class="geo-pin">📍</span> India
             </a>
             {% if selected_region and selected_region != 'all' %}
-            <a href="/{% if selected_category or selected_priority or selected_date_range or selected_search %}?{% endif %}{% if selected_category %}category={{ selected_category }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_date_range %}&date_range={{ selected_date_range }}{% endif %}{% if selected_search %}&search={{ selected_search }}{% endif %}"
-               class="region-box-item region-box-reset" title="Show all articles">
-                <span class="region-name">✕ All Articles</span>
-            </a>
+            <a href="/" class="geo-reset-link" title="Show all articles">✕ Show All</a>
             {% endif %}
         </div>
     </div>
@@ -287,22 +276,22 @@
     {% endif %}
 </section>
 
-<!-- Section 3: All Community Eco Alerts (Filtered Results List) -->
+<!-- Section 3: Live Environmental News Feeds (Filtered Results List) -->
 <section class="articles-main-section" aria-labelledby="alertsHeading">
     <div class="section-top-bar">
         <div>
-            <div class="section-kicker">📋 COMPREHENSIVE STREAM</div>
+            <div class="section-kicker">📋 LIVE ENVIRONMENTAL NEWS FEEDS</div>
             <h2 id="alertsHeading" class="section-main-heading">
                 {% if selected_region == 'chennai' %}
-                    Chennai — Local Alerts
+                    Chennai — Live Environmental News Feeds
                 {% elif selected_region == 'tamil_nadu' %}
-                    Tamil Nadu — State Alerts
+                    Tamil Nadu — Live Environmental News Feeds
                 {% elif selected_region == 'india' %}
-                    India — National Alerts
+                    India — Live Environmental News Feeds
                 {% elif selected_region == 'global' %}
-                    Global Alerts
+                    Global — Live Environmental News Feeds
                 {% else %}
-                    Latest Eco Alerts
+                    Live Environmental News Feeds
                 {% endif %}
             </h2>
             <p class="section-subtext">All verified environmental and civic intelligence collected from monitored feeds.</p>
