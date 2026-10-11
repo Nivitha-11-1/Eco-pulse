@@ -104,7 +104,7 @@
 <div class="articles-results-bar">
     <div class="results-stats">
         <strong>{{ total_count }}</strong> alert(s) found
-        {% if total_count > 0 %}
+        {% if total_pages > 1 %}
         <span class="pagination-counter-label">• Page {{ page }} of {{ total_pages }}</span>
         {% endif %}
     </div>

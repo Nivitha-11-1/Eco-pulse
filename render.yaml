@@ -22,3 +22,5 @@ services:
         generateValue: true
       - key: DATABASE_URL
         sync: false
+      - key: SCHEDULE_INTERVAL_MINUTES
+        value: "30"

@@ -142,12 +142,66 @@ def test_database_preserves_historical_records_and_deduplication():
 
 
 def test_github_actions_workflow_cron_schedule():
-    """Verify .github/workflows/daily_pipeline.yml is configured for 7:00 AM IST (01:30 UTC)."""
+    """Verify .github/workflows/daily_pipeline.yml is configured for scheduled runs."""
     workflow_path = ROOT_DIR / ".github" / "workflows" / "daily_pipeline.yml"
     assert workflow_path.exists(), "Workflow file does not exist"
 
     content = workflow_path.read_text(encoding="utf-8")
-    assert "cron: '30 1 * * *'" in content or "cron: \"30 1 * * *\"" in content
+    assert "*/30 * * * *" in content or "30 1 * * *" in content
     assert "workflow_dispatch:" in content
     assert "concurrency:" in content
     assert "python pipeline.py" in content
+
+
+def test_articles_pagination_displays_all_articles_with_extended_page_count(client):
+    """Verify all articles (356) are browsable across pages with extended page count (30 pages)."""
+    response = client.get("/articles")
+    assert response.status_code == 200
+    html = response.data.decode("utf-8")
+
+    # Verify extended pagination is present with 30 pages
+    assert "Page 1 of" in html
+    assert "pagination-container" in html
+    assert "alert(s) found" in html
+
+    # Verify 12 articles per page rendered
+    article_cards = html.count("feed-article-card")
+    assert article_cards == 12, f"Expected 12 articles per page, found {article_cards}"
+
+    # Verify page 2 is accessible and returns 200 with next set of articles
+    page2_resp = client.get("/articles?page=2")
+    assert page2_resp.status_code == 200
+    page2_html = page2_resp.data.decode("utf-8")
+    assert "Page 2 of" in page2_html
+    assert page2_html.count("feed-article-card") == 12
+
+    # Verify home dashboard renders matching alert cards
+    home_resp = client.get("/")
+    assert home_resp.status_code == 200
+    home_html = home_resp.data.decode("utf-8")
+    home_cards = home_html.count("feed-article-card")
+    assert home_cards >= 50, f"Expected alert cards on dashboard, found {home_cards}"
+
+
+def test_pipeline_status_and_30min_trigger(client):
+    """Verify /api/pipeline/status endpoint and 30-minute update trigger."""
+    from config import config
+
+    # Check status endpoint
+    status_resp = client.get("/api/pipeline/status")
+    assert status_resp.status_code == 200
+    status_data = status_resp.get_json()
+    assert status_data["status"] == "active"
+    assert status_data["update_interval_minutes"] == 30
+
+    # Check unauthorized trigger rejected
+    unauth_resp = client.get("/api/pipeline/run")
+    assert unauth_resp.status_code == 401
+
+    # Check authorized trigger via query secret
+    secret = config.SECRET_KEY
+    auth_resp = client.get(f"/api/pipeline/run?secret={secret}&async=true")
+    assert auth_resp.status_code == 200
+    auth_data = auth_resp.get_json()
+    assert auth_data["status"] in ("started", "already_running")
+

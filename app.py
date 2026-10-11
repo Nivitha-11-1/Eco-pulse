@@ -6,6 +6,8 @@ Web Dashboard & API Application
 import math
 import os
 import sqlite3
+import sys
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -95,6 +97,7 @@ def build_filter_query(
     date_range="all",
     search=None,
     region=None,
+    relevant_only=True,
 ):
     """Construct SQL WHERE clause and parameters for article filtering."""
     clauses = ["1 = 1"]
@@ -103,7 +106,7 @@ def build_filter_query(
     if category:
         clauses.append("LOWER(TRIM(category)) = LOWER(TRIM(?))")
         params.append(category)
-    else:
+    elif relevant_only:
         clauses.append("is_relevant = 1")
 
     if priority:
@@ -159,6 +162,7 @@ def get_articles(
     sort_by="priority",
     limit=None,
     offset=0,
+    relevant_only=True,
 ):
     """Fetch filtered articles from the database with regional & priority ordering."""
     try:
@@ -168,6 +172,7 @@ def get_articles(
             date_range=date_range,
             search=search,
             region=region,
+            relevant_only=relevant_only,
         )
 
         if sort_by == "newest":
@@ -234,6 +239,7 @@ def count_articles(
     date_range="all",
     search=None,
     region=None,
+    relevant_only=True,
 ):
     """Get count of filtered articles."""
     try:
@@ -243,6 +249,7 @@ def count_articles(
             date_range=date_range,
             search=search,
             region=region,
+            relevant_only=relevant_only,
         )
 
         query = f"SELECT COUNT(*) FROM articles WHERE {where_sql}"
@@ -417,7 +424,7 @@ def dashboard():
     if sort_by not in ("priority", "newest"):
         sort_by = "priority"
 
-    # Fetch filtered articles for main alerts section
+    # Fetch filtered articles for main alerts section - display all matching articles
     articles = get_articles(
         category=category or None,
         priority=priority or None,
@@ -425,7 +432,7 @@ def dashboard():
         search=search or None,
         region=region if region != "all" else None,
         sort_by=sort_by,
-        limit=60,
+        limit=None,
     )
 
     stats = get_dashboard_stats()
@@ -463,7 +470,7 @@ def dashboard():
 
 @app.route("/articles")
 def articles_page():
-    """Dedicated Articles page with search, filters, and pagination."""
+    """Dedicated Articles page displaying all matching relevant environmental news articles."""
     category = request.args.get("category", "").strip()
     priority = request.args.get("priority", "").strip()
     date_range = request.args.get("date_range", "all").strip().lower()
@@ -488,6 +495,7 @@ def articles_page():
         date_range=date_range,
         search=search or None,
         region=region if region != "all" else None,
+        relevant_only=False,
     )
 
     total_pages = max(1, math.ceil(total_count / per_page))
@@ -504,9 +512,10 @@ def articles_page():
         sort_by=sort_by,
         limit=per_page,
         offset=offset,
+        relevant_only=False,
     )
 
-    # Calculate pagination range (e.g. 1 2 3 4 5)
+    # Calculate sliding pagination range (e.g. 1 2 3 4 5)
     page_numbers = list(range(max(1, page - 2), min(total_pages + 1, page + 3)))
 
     return render_template(
@@ -569,22 +578,127 @@ def healthcheck():
     }
 
 
-@app.route("/api/pipeline/run", methods=["POST"])
-def trigger_pipeline():
-    """Secure webhook to trigger pipeline run from scheduled runner."""
-    auth_header = request.headers.get("Authorization", "")
-    secret = auth_header.replace("Bearer ", "").strip()
-    expected_secret = os.getenv("PIPELINE_SECRET", config.SECRET_KEY)
+# Thread lock and status dictionary for automated 30-minute pipeline runs
+pipeline_lock = threading.Lock()
+pipeline_status = {
+    "is_running": False,
+    "last_run": None,
+    "last_result": None,
+    "last_error": None,
+}
 
-    if not secret or secret != expected_secret:
-        return {"status": "error", "message": "Unauthorized"}, 401
+
+def run_pipeline_task(verbose: bool = False):
+    """Executes news ingestion pipeline in a thread-safe manner."""
+    if pipeline_lock.locked():
+        app.logger.info("Pipeline already in progress. Skipping concurrent run.")
+        return {"status": "in_progress", "message": "Pipeline already running"}
+
+    with pipeline_lock:
+        pipeline_status["is_running"] = True
+        try:
+            from pipeline import run_pipeline
+            stats = run_pipeline(verbose=verbose)
+            now_ist = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S IST")
+            pipeline_status["last_run"] = now_ist
+            pipeline_status["last_result"] = stats
+            pipeline_status["last_error"] = None
+            app.logger.info("30-minute automated pipeline completed at %s: %s", now_ist, stats)
+            return stats
+        except Exception as exc:
+            app.logger.exception("Automated pipeline encountered an error: %s", exc)
+            pipeline_status["last_error"] = str(exc)
+            return {"error": str(exc)}
+        finally:
+            pipeline_status["is_running"] = False
+
+
+def init_background_scheduler():
+    """Initializes in-app APScheduler to refresh news feeds every 30 minutes."""
+    if "pytest" in sys.modules or os.getenv("TESTING", "").lower() in ("1", "true"):
+        return None
 
     try:
-        from pipeline import run_pipeline
-        stats = run_pipeline()
-        return {"status": "success", "results": stats}, 200
-    except Exception as e:
-        return {"status": "error", "message": str(e)}, 500
+        from apscheduler.schedulers.background import BackgroundScheduler
+        scheduler = BackgroundScheduler(daemon=True)
+        interval = getattr(config, "SCHEDULE_INTERVAL_MINUTES", 30)
+
+        scheduler.add_job(
+            func=run_pipeline_task,
+            trigger="interval",
+            minutes=interval,
+            id="ecopulse_30min_auto_update",
+            name="EcoPulse 30-Minute News Feed Updater",
+            replace_existing=True,
+        )
+        scheduler.start()
+        app.logger.info("In-app 30-minute background scheduler started successfully.")
+        return scheduler
+    except Exception as exc:
+        app.logger.warning("Could not initialize in-app background scheduler: %s", exc)
+        return None
+
+
+# Initialize background scheduler on application startup
+scheduler = init_background_scheduler()
+
+
+@app.route("/api/pipeline/run", methods=["GET", "POST"])
+@app.route("/api/update", methods=["GET", "POST"])
+def trigger_pipeline():
+    """Secure webhook to trigger pipeline run every 30 minutes.
+
+    Can be triggered via:
+    1. HTTP POST with Header: Authorization: Bearer <PIPELINE_SECRET>
+    2. HTTP GET / POST with Query parameter: ?secret=<PIPELINE_SECRET>
+    """
+    auth_header = request.headers.get("Authorization", "")
+    secret_from_header = auth_header.replace("Bearer ", "").strip()
+    secret_from_query = request.args.get("secret", "").strip()
+    provided_secret = secret_from_header or secret_from_query
+    expected_secret = os.getenv("PIPELINE_SECRET", config.SECRET_KEY)
+
+    if not provided_secret or provided_secret != expected_secret:
+        return {"status": "error", "message": "Unauthorized"}, 401
+
+    run_async = request.args.get("async", "true").lower() in ("true", "1", "yes")
+
+    if run_async:
+        if pipeline_lock.locked():
+            return {
+                "status": "already_running",
+                "message": "EcoPulse pipeline is already in progress",
+                "last_run": pipeline_status.get("last_run"),
+            }, 200
+
+        worker = threading.Thread(
+            target=run_pipeline_task,
+            kwargs={"verbose": False},
+            daemon=True,
+        )
+        worker.start()
+        return {
+            "status": "started",
+            "message": "EcoPulse 30-minute pipeline update started in background thread",
+            "timestamp": datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S IST"),
+        }, 200
+
+    results = run_pipeline_task(verbose=False)
+    return {"status": "success", "results": results}, 200
+
+
+@app.route("/api/pipeline/status", methods=["GET"])
+def pipeline_status_endpoint():
+    """Returns the current background scheduler & pipeline execution status."""
+    return {
+        "status": "active",
+        "is_running": pipeline_status["is_running"],
+        "last_run": pipeline_status["last_run"],
+        "last_result": pipeline_status["last_result"],
+        "last_error": pipeline_status["last_error"],
+        "update_interval_minutes": getattr(config, "SCHEDULE_INTERVAL_MINUTES", 30),
+        "scheduler_active": scheduler is not None and getattr(scheduler, "running", False),
+    }
 
 
 @app.errorhandler(500)

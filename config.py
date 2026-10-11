@@ -52,6 +52,7 @@ class Config:
     # Scheduler Settings
     DAILY_RUN_TIME = os.getenv("DAILY_RUN_TIME", "06:00")
     SCHEDULE_INTERVAL_HOURS = int(os.getenv("SCHEDULE_INTERVAL_HOURS", 24))
+    SCHEDULE_INTERVAL_MINUTES = int(os.getenv("SCHEDULE_INTERVAL_MINUTES", 30))
 
     # News Categories as required by the project specifications
     CATEGORIES = [
