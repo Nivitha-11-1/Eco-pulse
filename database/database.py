@@ -116,7 +116,8 @@ def initialize_database(
                 seed_file = target_path.parent / "seed_articles.json"
                 if not seed_file.exists():
                     seed_file = _BASE_DIR / "data" / "seed_articles.json"
-                if count == 0 and seed_file.exists():
+                if count < 300 and seed_file.exists():
+                    conn.execute("DELETE FROM articles WHERE url LIKE '%example.com%'")
                     with open(seed_file, "r", encoding="utf-8") as f:
                         seed_data = json.load(f)
                     for art in seed_data:

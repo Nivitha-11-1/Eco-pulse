@@ -114,6 +114,24 @@
 <div class="alerts-feed-grid">
     {% for article in articles %}
     <article class="feed-article-card priority-border-{{ article['priority']|lower }}">
+        <div class="feed-card-image-wrap">
+            {% if 'pollution' in (article['category'] or '')|lower or 'air' in (article['category'] or '')|lower or 'weather' in (article['category'] or '')|lower or 'climate' in (article['category'] or '')|lower %}
+            <img
+                src="{{ url_for('static', filename='images/air_quality.jpg') }}"
+                alt="{{ article['title'] }}"
+                class="feed-card-img"
+                loading="lazy"
+            >
+            {% else %}
+            <img
+                src="{{ url_for('static', filename='images/community.jpg') }}"
+                alt="{{ article['title'] }}"
+                class="feed-card-img"
+                loading="lazy"
+            >
+            {% endif %}
+        </div>
+
         <div class="feed-card-header">
             <div class="badges-group">
                 <span class="category-badge">{{ article["category"] }}</span>

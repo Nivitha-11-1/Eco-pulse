@@ -6,7 +6,7 @@
     "url": "https://example.com/news/solar",
     "source": "Mock Energy Daily",
     "published_at": "2026-10-08 04:00:00 UTC",
-    "collected_at": "2026-10-11 09:02:56 UTC",
+    "collected_at": "2026-10-11 09:28:31 UTC",
     "category": "Climate & Weather",
     "priority": "HIGH",
     "location": "Tamil Nadu",
@@ -15,6 +15,6 @@
     "keywords": "",
     "recommended_action": "Stay informed.",
     "is_relevant": 1,
-    "created_at": "2026-10-11 09:02:56"
+    "created_at": "2026-10-11 09:28:31"
   }
 ]

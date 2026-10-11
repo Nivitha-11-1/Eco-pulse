@@ -1006,6 +1006,26 @@ img {
     box-shadow: var(--shadow-hover);
 }
 
+.feed-card-image-wrap {
+    height: 160px;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    margin: -22px -24px 14px -24px;
+    background: var(--forest-900);
+}
+
+.feed-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.feed-article-card:hover .feed-card-img {
+    transform: scale(1.05);
+}
+
 .feed-card-header {
     display: flex;
     justify-content: space-between;
@@ -2043,4 +2063,19 @@ img {
 .region-box-reset:hover {
     background: #fee2e2;
     color: #b91c1c;
+}
+
+.detail-hero-image-wrap {
+    height: 240px;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    margin: -32px -32px 24px -32px;
+    background: var(--forest-900);
+}
+
+.detail-hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
